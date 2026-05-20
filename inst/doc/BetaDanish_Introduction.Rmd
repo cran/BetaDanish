@@ -1,0 +1,139 @@
+---
+title: "Introduction to the BetaDanish Package"
+author: "Bilal Ahmad & Dr. Muhammad Yameen Danish"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to the BetaDanish Package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## 1. Introduction
+
+The **`BetaDanish`** package provides a comprehensive suite of tools for survival and reliability analysis using the Beta-Danish distribution.
+
+Classical lifetime models, such as the Weibull, Gamma, or Log-Normal distributions, are often limited in their hazard shape flexibility. They typically force the hazard rate to be strictly monotonic or, at best, unimodal. The Beta-Danish distribution overcomes these limitations by accommodating **decreasing, increasing, unimodal (upside-down bathtub), and bathtub-shaped** hazard rates within a single, unified four-parameter family.
+
+This package implements the core mathematical functions, robust Maximum Likelihood Estimation (MLE) for complete and right-censored data, and advanced modules for Accelerated Failure Time (AFT) regression, cure-rate models, and competing risks.
+
+## 2. Theoretical Background
+
+The Beta-Danish distribution is constructed by applying the beta-generated transformation (Eugene et al., 2002) to a baseline distribution. The baseline used here is the two-parameter exponentiated log-logistic distribution.
+
+Let $a, b, c, k > 0$ be the parameters of the distribution. 
+* $k$ is the **scale parameter**.
+* $c$ is the **baseline shape parameter**.
+* $a$ and $b$ are the **beta-generator shape parameters** controlling skewness and tail weight.
+
+The Cumulative Distribution Function (CDF) is given by the regularized incomplete beta function:
+$$ F(t) = I_{G(t)}(a, b) $$
+where $G(t) = \left( \frac{k t}{1 + k t} \right)^c$.
+
+The Probability Density Function (PDF) is:
+$$ f(t) = \frac{c k}{B(a, b)} \frac{(k t)^{ca - 1}}{(1 + k t)^{ca + 1}} \left[ 1 - \left( \frac{k t}{1 + k t} \right)^c \right]^{b - 1} $$
+
+### The 3-Parameter Submodel
+By fixing $a = 1$, the distribution reduces to a highly tractable 3-parameter submodel (the Complementary Exponentiated Danish distribution), which is particularly useful for regression and cure-rate modeling to ensure parameter identifiability.
+
+## 3. Core Distribution Functions
+
+The package provides the standard `d/p/q/r/h` functions. All internal calculations are performed in log-space to ensure numerical stability, especially in the tails.
+
+```r
+library(BetaDanish)
+
+# Calculate the hazard rate at time t = 2
+hbetadanish(x = 2, a = 1.5, b = 2.0, c = 3.0, k = 0.5)
+
+# Generate 100 random survival times
+set.seed(2026)
+sim_data <- rbetadanish(n = 100, a = 1.5, b = 2.0, c = 3.0, k = 0.5)
+```
+
+## 4. Fitting Models to Data
+
+The `fit_betadanish()` function is the core MLE engine. It uses a multi-start optimization strategy to ensure global convergence and strictly enforces positivity constraints via log-scale reparameterization.
+
+### Example 1: Uncensored Data (Bladder Cancer Remission)
+
+The `remission` dataset contains the remission times of 128 bladder cancer patients. This data exhibits a unimodal/decreasing hazard rate.
+
+```r
+# Load the built-in dataset
+data("remission", package = "BetaDanish")
+
+# Fit the full 4-parameter model
+fit_full <- fit_betadanish(survival::Surv(time, status) ~ 1, data = remission)
+summary(fit_full)
+
+# Fit the 3-parameter submodel (a = 1)
+fit_sub <- fit_betadanish(survival::Surv(time, status) ~ 1, data = remission, submodel = TRUE)
+
+# Compare the nested models using a Likelihood Ratio Test (LRT)
+compare_models(fit_full, fit_sub)
+```
+
+You can easily generate publication-quality diagnostic plots:
+
+```r
+# Generates Survival, Hazard, Density, P-P, and Q-Q plots
+plot(fit_full, type = "all")
+```
+
+### Example 2: Right-Censored Data (Bone Marrow Transplant)
+
+The `transplant` dataset contains survival times for 91 patients, including right-censored observations. The `fit_betadanish()` function natively handles `survival::Surv` objects.
+
+```r
+data("transplant", package = "BetaDanish")
+
+# Fit the model to censored data
+fit_censored <- fit_betadanish(survival::Surv(time, status) ~ 1, data = transplant)
+summary(fit_censored)
+
+# Plot the Kaplan-Meier curve overlaid with the Beta-Danish fit
+plot(fit_censored, type = "survival")
+```
+
+## 5. Advanced Modeling: Cure Rates
+
+In many clinical datasets (like the `transplant` data), a proportion of patients may be "cured" and will never experience the event. Standard survival models force the survival curve to zero, which misrepresents the data.
+
+The `BetaDanish` package provides the `fit_bd_cure()` function to fit both **Mixture** and **Promotion-Time (Non-Mixture)** cure models.
+
+```r
+# Fit a mixture cure model
+# Latency (time to event for susceptible) has no covariates (~ 1)
+# Incidence (probability of being susceptible) depends on treatment group (~ group)
+cure_fit <- fit_bd_cure(
+  formula_aft = survival::Surv(time, status) ~ 1,
+  formula_cure = ~ group,
+  data = transplant,
+  type = "mixture"
+)
+
+summary(cure_fit)
+```
+
+## 6. Automated Benchmarking
+
+To justify the use of the Beta-Danish distribution, you can benchmark it against classical distributions (Weibull, Gamma, Log-Normal, etc.) using the `compare_distributions()` function. *(Note: This requires the `flexsurv` package).* 
+
+```r
+# Returns a ranked table of AIC, BIC, and Log-Likelihoods
+compare_distributions(fit_full)
+```
+
+## 7. Conclusion
+
+The `BetaDanish` package offers a robust, flexible, and user-friendly environment for advanced survival analysis. By unifying standard MLE fitting, comprehensive diagnostics, and advanced modules (AFT, Cure, Competing Risks) under a single framework, it serves as a powerful tool for statisticians and applied researchers alike.

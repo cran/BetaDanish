@@ -1,0 +1,48 @@
+---
+title: "A Case Study Using the Beta-Danish Distribution"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{A Case Study Using the Beta-Danish Distribution}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = '#>')
+```
+
+# Introduction
+
+This vignette demonstrates a typical survival analysis workflow using the BetaDanish package.
+
+```{r}
+library(BetaDanish)
+library(survival)
+data('remission', package = 'BetaDanish')
+head(remission)
+```
+
+# Fitting the Beta-Danish model
+
+```{r}
+fit <- fit_betadanish(Surv(time, status) ~ 1, data = remission, n_starts = 1)
+summary(fit)
+```
+
+# Three-parameter submodel
+
+```{r}
+fit_sub <- fit_betadanish(Surv(time, status) ~ 1, data = remission, submodel = TRUE, n_starts = 1)
+compare_models(fit, fit_sub)
+```
+
+# Diagnostic plots
+
+```{r, fig.width = 7, fig.height = 5}
+plot(fit, type = 'survival')
+plot(fit, type = 'hazard')
+```
+
+# Interpretation
+
+The fitted model can be used to estimate survival probabilities, hazard behavior, and overall model fit. Users should compare the Beta-Danish model with alternative lifetime distributions and inspect diagnostic plots before drawing final conclusions.

@@ -1,0 +1,157 @@
+#' Bladder Cancer Remission Times
+#'
+#' Remission times (in months) for 128 bladder cancer patients. This is a
+#' complete (uncensored) sample widely used in lifetime distribution literature
+#' to demonstrate decreasing or right-skewed hazard rates.
+#'
+#' @format A data frame with 128 rows and 2 columns:
+#' \describe{
+#'   \item{time}{Remission time in months}
+#'   \item{status}{Event indicator (1 = event occurred)}
+#' }
+#' @source Lee, E. T., & Wang, J. W. (2003). Statistical Methods for Survival Data Analysis (3rd ed.). Wiley.
+#' @examples
+#' data(remission)
+#' \donttest{
+#' fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = remission)
+#' summary(fit)
+#' }
+"remission"
+
+#' Breaking Stress of Carbon Fibres
+#'
+#' Breaking stress (in Gba) of 100 carbon fibre specimens. This dataset exhibits
+#' a unimodal (increasing-then-decreasing) hazard pattern that classical
+#' distributions like the Weibull cannot adequately capture.
+#'
+#' @format A data frame with 100 rows and 2 columns:
+#' \describe{
+#'   \item{time}{Breaking stress in Gba}
+#'   \item{status}{Event indicator (1 = event occurred)}
+#' }
+#' @source Nichols, M. D., & Padgett, W. J. (2006). A bootstrap control chart for Weibull percentiles. Quality and Reliability Engineering International, 22(2), 141-151.
+#' @examples
+#' data(carbon_fibres)
+#' \donttest{
+#' fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = carbon_fibres)
+#' }
+"carbon_fibres"
+
+#' Bone Marrow Transplant Survival
+#'
+#' Survival times for 91 patients with refractory acute lymphoblastic leukemia
+#' who received either an allogeneic or autologous bone marrow transplant.
+#' This dataset includes right-censoring and a treatment covariate, making it
+#' ideal for demonstrating cure-rate models and AFT regression.
+#'
+#' @format A data frame with 91 rows and 3 columns:
+#' \describe{
+#'   \item{time}{Survival time in days}
+#'   \item{status}{Event indicator (1 = death/relapse, 0 = censored)}
+#'   \item{group}{Treatment group (0 = Allogeneic, 1 = Autologous)}
+#' }
+#' @source Klein, J. P., & Moeschberger, M. L. (2003). Survival Analysis: Techniques for Censored and Truncated Data (2nd ed.). Springer.
+#' @examples
+#' data(transplant)
+#' \donttest{
+#' # Fit a model with a covariate
+#' fit <- fit_bd_aft(survival::Surv(time, status) ~ group, data = transplant)
+#' }
+"transplant"
+
+#' Aarset Device Failure Times
+#'
+#' Times to failure of 50 devices, exhibiting a classic bathtub-shaped hazard rate.
+#' This is a standard benchmark dataset in reliability engineering.
+#'
+#' @format A data frame with 50 rows and 2 columns:
+#' \describe{
+#'   \item{time}{Failure time}
+#'   \item{status}{Event indicator (1 = event occurred)}
+#' }
+#' @source Aarset, M. V. (1987). How to Identify a Bathtub Hazard Rate. IEEE Transactions on Reliability, R-36(1), 106-108.
+#' @examples
+#' data(aarset)
+#' \donttest{
+#' fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = aarset)
+#' plot(fit, type = "hazard")
+#' }
+"aarset"
+
+#' Acute Myelogenous Leukemia Survival
+#'
+#' Survival times (in weeks) for 23 patients with acute myelogenous leukemia.
+#' A classic, small dataset perfect for fast testing of censored data workflows.
+#'
+#' @format A data frame with 23 rows and 3 columns:
+#' \describe{
+#'   \item{time}{Survival time in weeks}
+#'   \item{status}{Event indicator (1 = event, 0 = censored)}
+#'   \item{group}{Treatment group (Maintained vs Non-maintained)}
+#' }
+#' @source Miller, R. G. (1997). Survival Analysis. Wiley.
+#' @examples
+#' data(leukemia)
+#' fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = leukemia)
+"leukemia"
+
+#' Malignant Melanoma Survival After Surgery
+#'
+#' Survival times for 205 patients with malignant melanoma after surgery.
+#' This rich clinical dataset includes multiple covariates and heavy censoring.
+#'
+#' @format A data frame with 205 rows and 6 columns:
+#' \describe{
+#'   \item{time}{Survival time in days}
+#'   \item{status}{Event indicator (1 = died from melanoma, 0 = alive, 2 = other death)}
+#'   \item{thickness}{Tumor thickness in mm}
+#'   \item{sex}{Patient sex (1 = male, 0 = female)}
+#'   \item{age}{Patient age in years}
+#'   \item{ulcer}{Ulceration indicator (1 = present, 0 = absent)}
+#'   \item{year}{Year of operation}
+#' }
+#' @source Andersen, P. K., Borgan, O., Gill, R. D., & Keiding, N. (1993). Statistical Models Based on Counting Processes. Springer.
+#' @examples
+#' data(melanoma)
+#' \donttest{
+#' # Treat status 1 as event, others as censored
+#' melanoma$event <- ifelse(melanoma$status == 1, 1, 0)
+#' fit <- fit_betadanish(survival::Surv(time, event) ~ age + thickness, data = melanoma)
+#' }
+"melanoma"
+#' Brain Cancer Survival Data
+#'
+#' A comprehensive dataset of 500 brain cancer patients, including survival times,
+#' censoring status, and multiple clinical covariates. This dataset was used to
+#' demonstrate Accelerated Failure Time (AFT) regression and Cure-Rate models
+#' using the Beta-Danish distribution.
+#'
+#' @format A data frame with 500 rows and 16 columns:
+#' \describe{
+#'   \item{ID}{Patient identifier}
+#'   \item{Gender}{Patient gender (1 = Male, 0 = Female)}
+#'   \item{Age}{Age group (1 = Young, 2 = Middle, 3 = Old)}
+#'   \item{Area}{Geographic area (1 = Urban, 0 = Rural)}
+#'   \item{FH}{Family history of cancer (1 = Yes, 0 = No)}
+#'   \item{CMH}{Comorbid history (1 = Yes, 0 = No)}
+#'   \item{Grade}{Tumor grade (1 = I/II, 2 = III, 3 = IV)}
+#'   \item{Surgery}{Surgical intervention (1 = Yes, 0 = No)}
+#'   \item{Radiotherapy}{Radiotherapy treatment (1 = Yes, 0 = No)}
+#'   \item{Chemotherapy}{Chemotherapy treatment (1 = Yes, 0 = No)}
+#'   \item{Treatment}{Treatment type}
+#'   \item{Morphology}{Tumor morphology}
+#'   \item{Survstatus}{Survival status (1 = Event/Death, 0 = Censored)}
+#'   \item{Survtime}{Survival time in months}
+#'   \item{Types}{Tumor types classification}
+#'   \item{Morphology1}{Alternative morphology classification}
+#' }
+#' @source Atomic Energy Cancer Hospital (NORI), Islamabad, Pakistan.
+#' @examples
+#' data(brain_cancer)
+#' \donttest{
+#' # Fit an AFT model using the brain cancer data
+#' fit <- fit_bd_aft(survival::Surv(Survtime, Survstatus) ~ Age + Grade + Surgery,
+#'                   data = brain_cancer, n_starts = 2)
+#' summary(fit)
+#' }
+"brain_cancer"
