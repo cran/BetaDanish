@@ -24,6 +24,8 @@ A classic, small dataset perfect for fast testing of censored data workflows.
 }
 \examples{
 data(leukemia)
+\donttest{
 fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = leukemia)
+}
 }
 \keyword{datasets}

@@ -2,8 +2,8 @@
 #'
 #' @param x An object of class `betadanish`.
 #'
-#' @return Invisibly returns the input betadanish object. Called mainly for its side effect of printing the fitted model summary.
 #' @param ... Further arguments passed to or from other methods.
+#' @return Invisibly returns the input betadanish object. Called mainly for its side effect of printing the fitted model summary.
 #' @export
 print.betadanish <- function(x, ...) {
   cat("\nCall:\n")
@@ -21,8 +21,8 @@ print.betadanish <- function(x, ...) {
 #'
 #' @param object An object of class `betadanish`.
 #'
-#' @return An object of class summary.betadanish containing coefficient estimates, standard errors, test statistics, p-values, log-likelihood, and model selection criteria.
 #' @param ... Further arguments passed to or from other methods.
+#' @return An object of class summary.betadanish containing coefficient estimates, standard errors, test statistics, p-values, log-likelihood, and model selection criteria.
 #' @export
 summary.betadanish <- function(object, ...) {
   est <- object$coefficients
@@ -67,8 +67,8 @@ summary.betadanish <- function(object, ...) {
 #'
 #' @param x An object of class `summary.betadanish`.
 #'
-#' @return Invisibly returns the input summary.betadanish object. Called mainly for its side effect of printing the coefficient table and fit statistics.
 #' @param ... Further arguments passed to or from other methods.
+#' @return Invisibly returns the input summary.betadanish object. Called mainly for its side effect of printing the coefficient table and fit statistics.
 #' @export
 print.summary.betadanish <- function(x, ...) {
   cat("\nCall:\n")
@@ -92,8 +92,8 @@ print.summary.betadanish <- function(x, ...) {
 #'
 #' @param object An object of class `betadanish`.
 #'
-#' @return An object of class logLik containing the maximized log-likelihood value, with degrees of freedom and number of observations stored as attributes.
 #' @param ... Further arguments passed to or from other methods.
+#' @return An object of class logLik containing the maximized log-likelihood value, with degrees of freedom and number of observations stored as attributes.
 #' @export
 logLik.betadanish <- function(object, ...) {
   val <- object$logLik
@@ -107,8 +107,8 @@ logLik.betadanish <- function(object, ...) {
 #'
 #' @param object An object of class `betadanish`.
 #'
-#' @return A numeric variance-covariance matrix for the estimated model parameters.
 #' @param ... Further arguments passed to or from other methods.
+#' @return A numeric variance-covariance matrix for the estimated model parameters.
 #' @export
 vcov.betadanish <- function(object, ...) {
   return(object$vcov)
@@ -118,8 +118,8 @@ vcov.betadanish <- function(object, ...) {
 #'
 #' @param object An object of class `betadanish`.
 #'
-#' @return A named numeric vector of maximum likelihood parameter estimates.
 #' @param ... Further arguments passed to or from other methods.
+#' @return A named numeric vector of maximum likelihood parameter estimates.
 #' @export
 coef.betadanish <- function(object, ...) {
   return(object$coefficients)

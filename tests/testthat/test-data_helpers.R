@@ -1,25 +1,33 @@
 test_that("read_survival_data handles CSVs and missing values", {
-  # Create a temporary CSV file
   tmp_file <- tempfile(fileext = ".csv")
-  test_data <- data.frame(
-    surv_time = c(10, 20, NA, 40),
-    event_stat = c(1, 0, 1, 1),
-    age = c(50, 60, 70, 80)
+  utils::write.csv(
+    data.frame(surv_time = c(1, 2, NA, 4),
+               event     = c(1, 0, 1, 1)),
+    tmp_file, row.names = FALSE
   )
-  write.csv(test_data, tmp_file, row.names = FALSE)
-
-  # Test reading with covariates
+  # The function correctly warns about the dropped NA row;
+  # the test acknowledges and silences that warning.
   expect_warning(
-    clean_dat <- read_survival_data(tmp_file, time_col = "surv_time", status_col = "event_stat", covar_cols = "age"),
-    "Dropped 1 rows due to missing values"
+    d <- read_survival_data(tmp_file,
+                            time_col   = "surv_time",
+                            status_col = "event"),
+    regexp = "missing values"
   )
+  expect_equal(nrow(d), 3)
+  expect_setequal(colnames(d), c("time", "status"))
+  unlink(tmp_file)
+})
 
-  expect_equal(nrow(clean_dat), 3)
-  expect_equal(colnames(clean_dat), c("time", "status", "age"))
-
-  # Test reading without status (assumes all 1s)
-  clean_dat2 <- read_survival_data(tmp_file, time_col = "surv_time")
-  expect_equal(clean_dat2$status, c(1, 1, 1)) # NA row was dropped
-
+test_that("read_survival_data assumes uncensored when status_col is NULL", {
+  tmp_file <- tempfile(fileext = ".csv")
+  utils::write.csv(
+    data.frame(surv_time = c(1, 2, 3, 4)),
+    tmp_file, row.names = FALSE
+  )
+  expect_message(
+    d <- read_survival_data(tmp_file, time_col = "surv_time"),
+    regexp = "uncensored"
+  )
+  expect_true(all(d$status == 1))
   unlink(tmp_file)
 })

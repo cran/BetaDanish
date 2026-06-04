@@ -7,8 +7,8 @@
 #' @param file Path to the CSV or Excel file containing the data.
 #' @param time_col Name of the time column.
 #'
-#' @return Invisibly returns a list containing the fitted full model and submodel objects. The function is mainly called for its side effects of printing an analysis report and producing diagnostic plots.
 #' @param status_col Name of the status column (optional).
+#' @return Invisibly returns a list containing the fitted full model and submodel objects. The function is mainly called for its side effects of printing an analysis report and producing diagnostic plots.
 #' @export
 analyze_betadanish <- function(file, time_col, status_col = NULL) {
   cat("======================================================\n")

@@ -1,0 +1,85 @@
+---
+title: "Bayesian Estimation with BetaDanish"
+author: "Bilal Ahmad"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bayesian Estimation with BetaDanish}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  warning = FALSE,
+  message = FALSE
+)
+have_mcmc <- requireNamespace("MCMCpack", quietly = TRUE) &&
+             requireNamespace("coda",     quietly = TRUE)
+knitr::opts_chunk$set(eval = have_mcmc)
+```
+
+## 1. Overview
+
+This vignette walks through Bayesian estimation of the three-parameter
+Exponentiated Danish (ED) submodel and the full four-parameter
+Beta-Danish distribution using `bayes_betadanish()`.
+
+## 2. ED submodel on bladder cancer remission times
+
+```{r}
+library(BetaDanish)
+data("remission")
+fit_bayes <- bayes_betadanish(
+  time     = remission$time,
+  status   = remission$status,
+  submodel = TRUE,
+  burnin   = 2000, mcmc = 5000,
+  tune     = 0.5,
+  seed     = 1
+)
+print(fit_bayes)
+```
+
+## 3. Posterior diagnostics
+
+```{r}
+draws <- fit_bayes$draws
+op <- par(mfrow = c(3, 1), mar = c(3, 4, 2, 1))
+coda::traceplot(draws)
+par(op)
+```
+
+## 4. Posterior survival vs Kaplan-Meier
+
+```{r}
+post_mean <- summary(draws)$statistics[, "Mean"]
+b <- post_mean["b"]; c <- post_mean["c"]; k <- post_mean["k"]
+km <- survival::survfit(survival::Surv(time, status) ~ 1, data = remission)
+plot(km, conf.int = FALSE, xlab = "Time (months)",
+     ylab = "Survival probability",
+     main = "Posterior mean ED fit on remission data")
+t_grid <- seq(0.1, max(remission$time), length.out = 200)
+S_post <- pbetadanish(t_grid, a = 1, b = b, c = c, k = k,
+                      lower.tail = FALSE)
+lines(t_grid, S_post, col = "red", lwd = 2)
+legend("topright",
+       legend = c("Kaplan-Meier", "Posterior-mean ED"),
+       col = c("black", "red"), lty = 1, lwd = c(1, 2), bty = "n")
+```
+
+## 5. Bayesian vs MLE comparison
+
+```{r}
+fit_mle <- fit_betadanish(survival::Surv(time, status) ~ 1,
+                          data = remission, submodel = TRUE,
+                          n_starts = 3)
+cbind(
+  MLE  = round(coef(fit_mle), 4),
+  Bayes_post_mean = round(post_mean, 4)
+)
+```

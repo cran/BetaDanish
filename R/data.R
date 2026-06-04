@@ -91,8 +91,10 @@
 #' }
 #' @source Miller, R. G. (1997). Survival Analysis. Wiley.
 #' @examples
-#' data(leukemia)
-#' fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = leukemia)
+#' data(leukemia)
+#' \donttest{
+#' fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = leukemia)
+#' }
 "leukemia"
 
 #' Malignant Melanoma Survival After Surgery
