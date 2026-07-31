@@ -2,31 +2,113 @@
 % Please edit documentation in R/competing_risks.R
 \name{fit_bd_competing}
 \alias{fit_bd_competing}
-\title{Fit Beta-Danish Competing Risks Model}
+\title{Fit a Beta-Danish Competing Risks Model}
 \usage{
-fit_bd_competing(time, cause, n_starts = 5, method = "BFGS")
+fit_bd_competing(
+  time,
+  cause,
+  covariates = NULL,
+  data = NULL,
+  submodel = FALSE,
+  n_starts = 5,
+  method = "BFGS"
+)
 }
 \arguments{
 \item{time}{Numeric vector of observed times.}
 
-\item{cause}{Integer vector of event causes. `0` indicates right-censored,
-and `1, 2, ..., m` indicate specific event causes.}
+\item{cause}{Integer vector of event causes: `0` for right-censored and
+`1, 2, ..., m` for the competing causes.}
 
-\item{n_starts}{Integer; number of random starts for the joint optimization.}
+\item{covariates}{Optional covariates. Either a one-sided formula such as
+`~ age + group`, evaluated in `data`, or a numeric matrix or data frame
+with one row per observation. `NULL` (default) fits cause-specific
+baselines with no regression structure.}
 
-\item{method}{Optimization method passed to `maxLik`.}
+\item{data}{Data frame in which to evaluate `covariates` when it is a
+formula.}
+
+\item{submodel}{Logical; if `TRUE`, fix `a = 1` in every cause, giving
+Exponentiated Danish cause-specific kernels. Default `FALSE`.}
+
+\item{n_starts}{Integer; number of starting points for the joint
+optimisation.}
+
+\item{method}{Optimisation method passed to [maxLik::maxLik()].}
 }
 \value{
-An object of class `bd_competing`.
+An object of class `"bd_competing"`.
 }
 \description{
 Fits a parametric competing risks model assuming independent latent failure
-times, where each cause-specific baseline follows a 4-parameter Beta-Danish
-distribution.
+times, with each cause-specific baseline following the Beta-Danish
+distribution. Covariates may be included, entering each cause through an
+accelerated failure time link.
 }
 \details{
-Under the assumption of independent latent failure times, the joint likelihood
-factorizes. The function first fits independent Beta-Danish models for each
-cause (treating other causes as censored) to find robust starting values,
-then optimizes the joint likelihood.
+Writing \eqn{\delta_i} for the observed cause and \eqn{d_i} for the event
+indicator, the log-likelihood is
+\deqn{\ell = \sum_{i: d_i = 1}\Bigl[\log f_{\delta_i}(y_i)
+       + \sum_{j \neq \delta_i}\log S_j(y_i)\Bigr]
+       + \sum_{i: d_i = 0}\sum_{j=1}^{m}\log S_j(y_i).}
+An event contributes the log-density of its own cause and the log-survival
+of every other cause at the same time; a censored observation contributes
+the log-survival of every cause.
+}
+\section{Covariates}{
+
+Each cause carries its own coefficient vector \eqn{\gamma_j}, acting on the
+time scale:
+\deqn{T_j = T_{0j}\exp(x'\gamma_j),}
+so that a positive coefficient lengthens time to failure from that cause.
+The likelihood contribution of an event at \eqn{t} is evaluated at the
+accelerated time \eqn{t\exp(-x'\gamma_j)} with the Jacobian
+\eqn{-x'\gamma_j} added on the log scale.
+
+The same design matrix is used for every cause, but the coefficients are
+free to differ, so a covariate may accelerate one cause and retard another.
+With `m` causes, `p` covariates and the full Beta-Danish kernel the model
+carries `m * (4 + p)` parameters, which grows quickly: check
+`summary()` for standard errors before interpreting any of them.
+}
+
+\section{Identifiability of the cause-specific marginals}{
+
+Mutual independence of the latent failure times is an *identifying*
+assumption, not an empirically testable property. Tsiatis (1975) showed that
+without it infinitely many joint distributions generate the same observable
+law of \eqn{(T, \delta)}, so the marginals cannot be recovered from the
+observed data alone.
+
+Under positive latent dependence the working independence model overstates
+each cause-specific survival at moderate times, biasing the fitted
+cumulative incidence functions downward; negative dependence reverses both.
+The overall survival \eqn{S(t) = \prod_j S_j(t)} is more robust than the
+individual marginals. Where conclusions rest on absolute cause-specific
+CIFs rather than on model selection, supplement this fit with a
+copula-based sensitivity analysis.
+}
+
+\examples{
+\donttest{
+# Without covariates
+d <- simulate_bd_competing_data(150, seed = 1)
+fit <- fit_bd_competing(d$time, d$cause, submodel = TRUE, n_starts = 1)
+fit
+
+# With one binary covariate. Note that simulate_bd_competing_data() only
+# creates the covariate column when 'gammas' is supplied.
+dx <- simulate_bd_competing_data(150, gammas = c(0.5, -0.5), seed = 2)
+fit2 <- fit_bd_competing(dx$time, dx$cause, covariates = ~ x, data = dx,
+                         submodel = TRUE, n_starts = 1)
+fit2$coefficients
+}
+}
+\references{
+Tsiatis, A. (1975). A nonidentifiability aspect of the problem of competing
+risks. *Proceedings of the National Academy of Sciences*, 72(1), 20-22.
+\doi{10.1073/pnas.72.1.20}
+}
+\seealso{
+[cif_betadanish()], [cif_compare()], [simulate_bd_competing_data()]
 }

@@ -5,7 +5,7 @@
 \alias{melanoma}
 \title{Malignant Melanoma Survival After Surgery}
 \format{
-A data frame with 205 rows and 6 columns:
+A data frame with 205 rows and 7 columns:
 \describe{
   \item{time}{Survival time in days}
   \item{status}{Event indicator (1 = died from melanoma, 0 = alive, 2 = other death)}

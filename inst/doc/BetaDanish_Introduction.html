@@ -12,7 +12,7 @@
 
 <meta name="author" content="Bilal Ahmad &amp; Dr. Muhammad Yameen Danish" />
 
-<meta name="date" content="2026-06-04" />
+<meta name="date" content="2026-07-31" />
 
 <title>Introduction to the BetaDanish Package</title>
 
@@ -341,7 +341,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Introduction to the BetaDanish Package</h1>
 <h4 class="author">Bilal Ahmad &amp; Dr. Muhammad Yameen Danish</h4>
-<h4 class="date">2026-06-04</h4>
+<h4 class="date">2026-07-31</h4>
 
 
 
@@ -483,6 +483,70 @@ user-friendly environment for advanced survival analysis. By unifying
 standard MLE fitting, comprehensive diagnostics, and advanced modules
 (AFT, Cure, Competing Risks) under a single framework, it serves as a
 powerful tool for statisticians and applied researchers alike.</p>
+</div>
+<div id="new-in-0.3.0" class="section level2">
+<h2>New in 0.3.0</h2>
+<p>Three groups of functions were added after the 0.2.0 release.</p>
+<div id="structural-properties" class="section level3">
+<h3>Structural properties</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">a =</span> <span class="fl">1.5</span>, <span class="at">b =</span> <span class="dv">5</span>, <span class="at">c =</span> <span class="dv">2</span>, <span class="at">k =</span> <span class="dv">1</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="fu">bd_moment_summary</span>(p<span class="sc">$</span>a, p<span class="sc">$</span>b, p<span class="sc">$</span>c, p<span class="sc">$</span>k)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt;       mean   variance         sd   skewness   kurtosis </span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt;  1.0517578  0.7961493  0.8922720  3.6708237 49.3171010 </span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; attr(,&quot;condition&quot;)</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; [1] &quot;E(Z^r) is finite if and only if b &gt; r&quot;</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="fu">bd_entropy_shannon</span>(p<span class="sc">$</span>a, p<span class="sc">$</span>b, p<span class="sc">$</span>c, p<span class="sc">$</span>k)</span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; [1] 0.9104078</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="fu">bd_stress_strength</span>(<span class="at">strength =</span> p, <span class="at">stress =</span> p)   <span class="co"># identical laws: one half</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; [1] 0.5</span></span></code></pre></div>
+<p>Moments exist only when <code>b &gt; r</code>, and the package
+enforces it rather than returning a plausible-looking number from a
+truncated sum:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">bd_moments</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>, <span class="at">a =</span> <span class="fl">1.5</span>, <span class="at">b =</span> <span class="dv">3</span>, <span class="at">c =</span> <span class="dv">2</span>, <span class="at">k =</span> <span class="dv">1</span>)   <span class="co"># the fourth is Inf</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; [1] 1.84375 8.87500     Inf     Inf</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">bd_tail_index</span>(<span class="at">a =</span> <span class="fl">1.5</span>, <span class="at">b =</span> <span class="dv">3</span>, <span class="at">c =</span> <span class="dv">2</span>, <span class="at">k =</span> <span class="dv">1</span>)<span class="sc">$</span>moment_condition</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; [1] &quot;E(Z^r) finite if and only if b &gt; r&quot;</span></span></code></pre></div>
+</div>
+<div id="shape-before-and-after-fitting" class="section level3">
+<h3>Shape, before and after fitting</h3>
+<p><code>bd_ttt_plot()</code> reads the hazard shape from the data
+alone, with no model assumed. <code>bd_hazard_shape()</code> does the
+same from a fitted parameter set, so the two can be compared.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">data</span>(guinea_pig)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>ttt <span class="ot">&lt;-</span> <span class="fu">bd_ttt_plot</span>(guinea_pig<span class="sc">$</span>time)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAkAAAAGACAMAAAByRC0tAAAA/1BMVEUAAAAAADoAAGYAOjoAOmYAOpAAZpAAZrY6AAA6ADo6AGY6OgA6Ojo6OmY6OpA6ZmY6ZpA6ZrY6kLY6kNtGgrRmAABmADpmAGZmOgBmOjpmOmZmZjpmZmZmZpBmkJBmkLZmkNtmtrZmtttmtv9/f3+QOgCQOjqQOmaQZgCQZjqQZmaQkGaQkLaQtpCQtraQttuQtv+Q29uQ2/+2ZgC2Zjq2ZpC2kDq2kGa2kJC2tma2tpC2tra2ttu225C229u22/+2/7a2/9u2///bkDrbkGbbtmbbtpDbtrbb27bb29vb2//b/7bb/9vb////tmb/25D/27b/29v//7b//9v///8ENRJ6AAAACXBIWXMAAA7DAAAOwwHHb6hkAAAXhklEQVR4nO2dC3vbNpaGqcReKc1lmpGdtjvpZWK7M2m2m62U3Znd7CSt2Us6HdMeif//twxxJUCREqkDkAD5vc8Tx6LAA0p4jQsJgkkOAIFk6AMAcQOBAAkIBEhAIEACAgESEAiQgECABAQCJCAQIAGBAAkIBEhAIEACAgESEAiQgECABAQCJCAQIAGBAAkIBEhAIEACAgESEAiQgECABAQCJCAQIAGBAAkIBEhAIEACAgESEAiQgECABAQCJMYi0PYvD5Nk9vH75gRXyelNzfZ1cu9aJfnv68qblS1mDPZWU8xO7Oba7r1AGIlARVFyZhd7UhwQ6O7Te5Xiqm4xYvC3XAi0m2u790JhJAKliaTxGz8s0Hpn5+oWI8Zu4iPZF8hZJh4ZiUDrZPai+Ist6iFeBf1UtGf3X7Dffv60sOrxShf+9k1RTT3lFmzfLJKT17qQ1sq/nz8rdv7yptxSjaET/8Beb86T+c8PWf4/FvFWIrLORKBDFqbPviveFemMXI1dflSN8XrvX0QgjEYg/kXfLpJlLr/5hP2ayZZtJQu/KG3GyXXZ6lUFkpVZkVhuqcYoEyuBBA9VMCMTQRlSV5WzVW7mauyS6qOCQP1RfOuzL9/JF0WJ//7m7rz47osS/7cboZUo/EK091KzItX8hv3h201Y8WaRLuX68S07McrEWyXQMv+pKOsX5W4qE44Zsvh58l7+buRa7sIqtBsWbokmrEdkdXLympWv+N7Tj4VQH9j4bK4LmxVcKv6+ZW1hCyQLbV0mqcQwEquYomo7vdEK6EyMwOK/lDeyRbp5brxp7FK8dfIut3YMmpEIJLo9ohGwBtsvRYMgC78oHdWCFK95GVY60WrnlDUy4r1KjGpiVmVwEeeyCTUyEcdghuQ/ZOoykH1cieowQaBe2X54tZDFrEqHlcbJf3w4V4WfJbqgVBlWBFKbM1ZTKEusGEbieoGMTHhSK2S9QOYud5+K3/4LAvWH7nCsRcdHFbPYvjk3aiB1okilOlgDVWNUE9fVQNbZqHY1kLHL3auHqhcPgfqhKJDZV0Uh/bwouy7Z49fij97oABsF17oPVI1hJK4XyMzECKz6QHUC7eyy/bPVBwuYcQhUnkhkBVEU+dMb1vJc8PEPOzs016Ow2Yv8jnd4xShsXY7CRNnaQ6Ziy06MMnG9QGYmnJ2QpjBiQ7kLH0Kydozvokb74TISgeyTOmuj12t3gOX5Fl4ua/s8EO+IWOeBxJYfqjHKxD/UC2RmwrHOA1UEyszzQOy9N2UHKsN5oN7Y8lGYGLzIM9Ff5WIEdfI6LXtGdy+Ljra45rr9n0Vy/0XZTLBzQifv5Wnjr8otOzH0W+/qBTIzEZQhdwSSuRq78E/y+L1xRCEzFoHAQEAgQAICARIQCJCAQIAEBAIkIBAgAYEACQgESEAgQAICARIQCJCAQIAEBAIk4hfo16EPoG9+bfh9GGIXaHu1tDdkYnrP5rzxLvm65HVsnjVOBzT2KlOtm3JUSWrz2nMAYufKB2EfWG0zP7zatueovQCBjpnxVydQOm9KvTcv1wLlt0/IC4Z0IUCBUj6fk38hmZhwPntl/M+mqcqbhMVdVHO9SSXJ2a9fLNQcZ3E7DZ+UKl9tv34l7uzhydeiGFSOm2ff8l0LNW4fvCr2yvhM62omMpQSaPPJtR3h3rX+KM9WO0cvczQ3bq8uiqDFoZ7+Jo9AfxB5y2yRH//A8sPJ32WeKp36OD0RnkBMGv6FqC+G3ShT/s//6tLTG5mMvVSbxB+nEoiZwSacFmHWfFvGlBGvtldFIZrJxS4qR7lrIdBinmfMuwdFaRUSrctMVCglUDqvREjvXauP8myl9lKHyncpN4rQRYjs0bIQQB2B/iBpmZ8+an0sdp7FC/qaRR0IU6C8LAz+daTG//xm0asLmYx9h9amyu5lSF3fS+1yM7m5S1mPrFiFwF4W/24/4jcBWZnIVOo47AgqLW/l1F7qUMvDKn7o0IVDz+fFu+bBq1jmoav3bYFUun57QeEJtBVrtKgvhnctzP/FTQtLmYx9h2oT/8vmpWEKxG544M0J/8MUr3gRmsnNXUyBHqgG6IILXORW7iVCyeIqy09JVaRVH+XZSu2lDpVnqDaq0EUr+ObbJ799cm0JJGOVh94gkE6n/OyH8ATK+V1Sq0aBygp6zfsBS90k1AnEly3IeJeFl7B45UAgFUoJ9Gy1K5D6KIZA6lBZj6wq0Pbr7/70/Sd/e3JTJ1B56IcF6rMTFKRA4gvb04SVyXQTltttkrV7JvsZefnqwk5u7lIvULUJU6FqayCj2WEfpdKEKapNWJ5+8eQfX79a5pZAqjnUh36oCZt6DcSrC9Fp3V6Vncbyf3ZX6Wylk7FOtNjEdik70Re6xG4Xs1Uq+tHyFf+OzeQMlWO9QGUnWuylQpl9oDKC6OTKY+Sd6Ll19DpDsxNd9NeX+ZuHFxWBjFiL2aoqUDVP9IH4HaOiuZl9+5EcvoubSvn/rGMh7gbmyVI5jJ+JJejKYbwsA3bv8vfnL8TtpUvx6kL8karkatwrc6wXSA/A9V4ilDkKKyM8F2nXeqSv9lKHyjE3ijMEF3wgZTdh3y5ULJYf+8D6ffbhVZ4q3eRHYXWo76Tf76YT5t9927OYfpj6eaAKGV/EYKn/DxbjTPSgAuFMdIVUDntTPfwNE6PvOqRAuBYGoqKbQGq5lNDXHAG90UmgVLUhWdCNCeiRLgIZfdi0YTiUgFFweelDIKNv2DSLBV2qkdC6IF3XQB3CgSARlY8XgYo+kKyCGvtAEChyVNvlRyC1fGTzU7IgUNzoro8ngfoOB4YCAoGO2AMv3wKlGIWNi+q4vecaqDyB4CQc6IWzkp3TPmjCwAHOLKrvQiCwF23NZf1JZwgE9mDo05ACAoFGatusCl4E0s8nThondECg8JH67L9e6qcGYrP/HYYDA9BKH29NmLi7ylk40DvKn0PpfPWBsmT/bF8IFCD7B+z1oBMNJGcVf9rNFYNAQFCpdNpONYRAgFFts9zPVIVAY8b0p/00ZwYEAtwf9Ws3fSAQyG1/uu4LgSZP+yF7HRBo6mh/ujZeAgg0cWj6QKCpo/05NgAEmjaU7g8HAk0a5s+xjZcAAk0ZNkuepA8EmjY1d1l0BQJNlstLcgcoh0CTpWi6SCcQFRBomrCmy4U/EGiKdJtzuB8INDlY3yd4gdZJMucrtTbNjIZAA8H7Pg7jeVqh7PSmcIg/mg8rlAXFpaOuj8bfGoniUTNYIzE0HDVdCk93puqHyGCV1mCQ55zd+oMaaCqoSxaO/fHdB2p8bA4E6hd9ySIOgTAKCwjddLkbuxvgPNDIEZcsOt+x3BoING4uvVU9EqzSOna8qSPAKq2j5VJcMPXrD5qwsSK6zt79gUAjRY+8fGfkbYWyvSskQiB/eB1z7eLpROLBR15CID+wWfKXPfrj8VKGAJcy+oTpc9Zvlv4upgpwMbU/eqpzbFADjQY3d1l0xVcfCI+87Jlh9PE2CsMjL3vmcoDWi4PzQKNgiN6PAAJFj6tbBI8DAkWOPOszWP4QKG4u+zph2AQEippB3eFAoFiRlyyGPgwIFCeXl0MOvQwgULSEoA8EihC3iyNQgUBRwS+3h+QPBIoFKc3AZ312gUAx0OcMsY5AoOBR6lAX5PUDBAocVfGEqQ8EChzdbAWqDwQKmpCbLgUECpKy0xy2PhAoPOy7ugLXBwKFRK83BLrC1wJT967z20WS8GXu6OHGzlmdO6E3XgI/AnF/HqysO8QI4UZObbUThz7ebixcFhLN2a+4L+wgtS1WJPp4vDNV3lyIO1MPEFWHpwZPTVhR+6SogfbS2GGOpfES+BFoc37v2lgsmhpuZFhd5rPKm3Hp428Yn4k7U+eOwo2HAyP1yPTpLNCHbx4VfP6uv3xHxd6TPLHVPYJOAv30UC2Ref9FX/mOhIOnCOPUp5NA2zezL979nf3+zw9/efi0adkEGyzzm7eaDxapPp0EemPVOj89PSq7SS3zG+W1iY60F+jHynjq9qte8o2W1vbE2ngJ2gv09+qWX9o1YsR846R9tRO3Pp1HYQeX75VMd5nfjo1W5Pp0Fmh9yBzBVJf5HX+XZ4duAjU+Q9dmaots7juz3Mhl7I2XoKtATQ+Qs5jUMr9H2RN910fTTaDtVeO1CZPp1EBTa7B26dgHyhqfYWkxgWV+j+/ujKby4XRtwpJ2o7BRL/NLOj84Ln0wqX4fZ3s5LubI9IFAjbh3Z5xAoDq8iDK2xksAgRSeq5lx6gOBOD00UiPVp4tAbudghCMQejYkutVA7hwKRKAe3BnJJYsmOjdhjhwaXKCexlTjtic/rg/kojEbViCMyJ1xbCeaqtAgAvV7Mmf0lQ9nIqOw/k8FTkOfaQg0RIM1EX0mIBD6On7pINDmfNn6ary7fIkMYM9UGi/ByGug/uueaekzdoEG8Kfn/AanvUB/rcwN23zZS74U0PfxT3uBNp9bBt39O6kb1IdA/foz8ksWTXRowu4+e6rvTr17+fj94X1uF40zqHsQqN9h+yTtybv1gbYvk+T+o+efPXqYJB/vu69ZD9aax2v+BUL71QvdOtF3LxdMitnHB6ofeTPGkDVQf/5MtvLhdB6FbX/9tUXqzTm7H2NAgXrzZ9r6eBzGr2erYQXynIFk4vocI9Av37RbIjFNlsMJhP5PX3QVaPPp7NGjxUmbITx7VsZAAuF6e290FejNa/bz7vM2i0ttrwYRCLN9+qTTMP6b5394/Jzz2e+et3KInm9Hepst5j2HSOgk0C9v/+/zt5xv/vPt/7cSqOdVWvuwB3WPyVFN2PbHo5Zozb2v0tpD3QN9bLoKVPRr7i+SVp1oN/l2ogd/fGcQG92H8f98+7bFZTBn+XYBg/f+8XQicZBVWr3fIegzeqz4EWiQVVr9+gN96vEi0DBrJPr1x2PsqPEiUM+rtOIu0wEZQQ3k+64vNF778NUH6m+VVnSdB8XTKKy/VVp9++Mz+BiI/rYef/6g7mlD7AKh5zMwkQvkrQGDPi2JWyCM3QcnVoE8Dt3ReHUhSoF8LvgDfboRlUA9rDEGfToSkUC9rlAHWhKVQG4PocJEF0egAoEEsOdI4hEIDVeQQCBUPiQmLxD0oRGNQL788RJ1QkxdIEBkwgKh8XJBLALhEZSBMlWBoI8jPAmUJnJtIFeLK6ALFCieJtXPVvnmfJ47E8ihP7hk4RSPt/Vsr05v6AI5vn4Kexzj9cbC9ekNUSBcfw8dvzcWruc0gZyqg8rHB576QFKbzTllpXroEwHeRmGiEdteHS+QW3+cRQIW4Z4HQscnCkIWyFFWaLx84lug4zvRjgSCPn7puQZqv0qrK3+cRAGNBNuE0QVC3dMHoQpE9gf69EOoq7RSBYI+PRHoKq0TGsKbzwetIP78ssYn1ijSpOlr9k+gayRSBIqw8bp9sGr6xVyxtIHN+WD6hLpKK8GfCPWhC3SwjvJHmDXQ8QIFo8/ZPqqJ9wjEHtt3+tuzV6w9W4tpepvzP57zX9h7yQX7WbyZJbwh27Ckf1uwFMu9j/xzRJCrtI6gB7TXn7Nq6kM1kHiG8XqupuoVP4pf+BNFs+SC10DF/3wOH096u2ApmFZNJ3KdEeQqrccJFGXjJTgsEK9bVuJB2PxV8Uum5zxcyEo/m63km+UPz1VQiOeBjvInYn3aCKRr9ES+Kn5szoVB7LUQpfjJ3+Svyh8+CVCgoy7Dx6xPW4GK0XrRuykFEmfbLgyBuFVTF6izP1HXPYJWAmkhtECMNWu1UAOVdPVnBPq0FIh3ebKkIpCsdIw+0LQF6uwP+UhCYL9Ay7IGKgYnSy1QoUvpTDkKm7RAE52GuE+gfJ2c/qb6QLOVbLK4KOzUDx/Ws3fVeaBJC9TJn1E0XtETmkCtA0CfMIhVIOgTCLEKBAIhKIHa+YPGKySiEwj6hEVsAkGfwIhIoHHXPeqEYAd0+u1Vix1rZ8Zm+nR261zZgT7TJ6mCEmivP+PWh5dL1110safzDonrNnYUKM/KaTqxCDRyfUgCtSp+pwIZVV4sAo0ado3ilWrC1mp5ybXYalykkDNZy6mtohjFxDK2LCWriaqpy3mvRbVhT4qVG9nrLxZW6JRPB1yWWYk5tak6pHKmcgQCRdl4XV6KtRib/jdZ8xnNUiA1b1VvNS6TipmsxtRWOaODL0bJNyx3UlvzXquTYssaqBKah7Wy4nNq1SEZ9WVAAtX7E6U+nRDXO+VFUj1vVW+tTla9MKa28uIX813lrT07qc15rzuTYkuBKqFzMSN2ZwdxSOY12oDuTK0VaPT6qBbIGIXxeat6qz1VTKYpp7aa19/zPN9Jbc57tfdU0xfVm2ZouUSqvYM+JPNWtIDuTJ1qFyi1BFLzVlNbIFXa7Ic1tVVN25DTP3ZTG/NedybF7gikEqiGzNoh7U2g4+4Lqwg0mfWcrRpIT+JproHsqa2HaiC+dV0J3iSQOY9omeeVHfqrgY66M9X2Zyr25KrMZZdWz1vVW+3JqmwiojW1tbkPtDvvdWdSbFUgnUA2YPYOt2XV5LkPdFQNNNUWTBSJGoXpeat1o7CymiintubGKGx7Nd9JXc57Xe5OilXa7YSWI7FKVupA/Y/CjrkzVQs0ocpHYp4HUvNW+SmYe/8rqoBysqrsqJRTW/PG80D2vFc2M/ZmZ1LsWp0HskN/J8dAF5Ws+jsPdMSdqVKg6emzj6YegEXXa2h0jByDOQ+k/HGbTbzwXkbLhVvaXAtzSojXwqbbBWogS5K2a2u0uhrvkD6vxrde5vfsDI1XjISyzC/0iZRQmjDoEymhCAQiZfiLqZO5ZDFOhr6YCnsiJ5xLGSBKBryYispnDAxWA0GfcTDUxdTLxvX9QVx4EejwxVRi/AGDRnOggX16373eCXyFYwgKgYKMGU9QCBRkzHiCQqAgY8YTFAIFGTOeoBAoyJjxBIVAQcaMJygECjJmPEHDFQiMHAgESEAgQAICARIQCJCAQIAEBAIkIBAgAYEACQgESEAgQAICARIQCJDwJFAmFvCreeEoKL9Lv9U6X+1jMtbtbzhpGZQ9ucLFUmNWULZyopPVp24/0neIHldMfgTizw5SR2O9cBR0e8WeAkEvmOqxZR3uWGoXlC0bx5ZXdRo0lau8klEL3lczaI8XgcQtrOv57gtXQeXaxm3WqmwdM+f3vdEFqvn05AOtBp3nLr5SVumoIzu2mLwIZBWvo7Kui0Ou16ox09M/0wWyP/0DF413JagrgbJkqRc5OLaY/AjEv7XM/ApbLWzbPqhgTQ1aiVm8dNAHsoJm974/d9FZs4/UWRNmffb8mGLyIpCoGWT9YL1wFVRsIReMHZPV4g4EsoKmrI0QNYa7oO7GJaUxxxZTxAJlbvrQZUy25IhzgWZu6l/7SFnVK56bQiVMgXppwuj1T92Bum7CRKeifIiJk6CuupV5HmgT1kcnOnVxFsiKmcqFTchlbQYVJULvSttBHVXquSlQSJ1o/8P4cqkihzEZDmogK6hY1Y1e/9acxKAHNYMENYz3fyLRTQeg5thcnIm2z/kVAY2l3dwE9dAHCupEony6kTphkToaMhhBZXNDD2sdaO7oUoYVNHNzzcUOunYUVAhEKSZcTAUkIBAgAYEACQgESEAgQAICARIQCJCAQIAEBAIkIBAgAYEACQgESEAgQAICARIQCJCAQIAEBAIkIBAgAYEACQgESEAgQAICARIQCJCAQIAEBAIkIBAgAYEACQjUDrHKBuP2iYO758cDBOpK5mLR5/EAgbqydrLA92iAQO3QTdj265V4/cdzR4vFxw0EaocWSHaBNudsqXw3K6VGDQRqhxYoU0vXLV2snRk/EKgdWiDZBeKvy6HZdIFA7VCuyC4QBFJAoHYoV9RZIAgkgUDtUK6os0AQSAKB2qFcUWeBIJAEArVDuqK6QBBIAYEACQgESEAgQAICARIQCJCAQIAEBAIkIBAgAYEACQgESEAgQAICARIQCJCAQIAEBAIkIBAgAYEACQgESEAgQAICARIQCJCAQIAEBAIkIBAg8S/L/R8u45xijwAAAABJRU5ErkJggg==" /><!-- --></p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">attr</span>(ttt, <span class="st">&quot;shape&quot;</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;unimodal (upside-down bathtub)&quot;</span></span></code></pre></div>
+</div>
+<div id="interval-estimation" class="section level3">
+<h3>Interval estimation</h3>
+<p>All four parameters are positive, so a symmetric Wald interval on the
+natural scale can cross zero. <code>bd_wald_ci()</code> builds on the
+log scale instead, and <code>bd_profile_ci()</code> inverts the
+likelihood ratio test. When the profile never returns below the critical
+threshold there is no finite upper bound, and the honest report is a
+lower bound rather than a point estimate with an interval around it.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">fit_betadanish</span>(survival<span class="sc">::</span><span class="fu">Surv</span>(time, status) <span class="sc">~</span> <span class="dv">1</span>, <span class="at">data =</span> remission,</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>                      <span class="at">submodel =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="fu">bd_wald_ci</span>(fit)</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="fu">bd_profile_plot</span>(<span class="fu">bd_profile_ci</span>(fit, <span class="st">&quot;b&quot;</span>))</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co"># For the four-parameter model, report the identified composite</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="fu">bd_identified_coef</span>(<span class="fu">fit_betadanish</span>(survival<span class="sc">::</span><span class="fu">Surv</span>(time, status) <span class="sc">~</span> <span class="dv">1</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a>                                  <span class="at">data =</span> remission))</span></code></pre></div>
+</div>
+<div id="simulation-studies" class="section level3">
+<h3>Simulation studies</h3>
+<p><code>bd_simulation_study()</code>, <code>bd_simulation_cure()</code>
+and <code>bd_simulation_competing()</code> report bias, RMSE, the ratio
+of mean estimated standard error to empirical standard deviation, and
+Wald coverage. Read the last two together: a ratio well below one means
+the asymptotic standard errors are optimistic at that sample size, and
+coverage falls short as a consequence.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">bd_simulation_study</span>(<span class="at">n =</span> <span class="fu">c</span>(<span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">200</span>), <span class="at">n_sim =</span> <span class="dv">500</span>,</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>                    <span class="at">truth =</span> <span class="fu">c</span>(<span class="at">b =</span> <span class="dv">3</span>, <span class="at">c =</span> <span class="dv">2</span>, <span class="at">k =</span> <span class="fl">0.5</span>), <span class="at">submodel =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
+</div>
 </div>
 
 

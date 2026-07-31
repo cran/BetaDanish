@@ -20,7 +20,7 @@ An object of class `bd_aft`.
 }
 \description{
 Fits an Accelerated Failure Time (AFT) regression model using the
-Complementary Exponentiated Danish (CED) baseline (Beta-Danish with a=1).
+Exponentiated Danish (ED) kernel, that is the Beta-Danish distribution with a = 1.
 }
 \details{
 To ensure identifiability, the shape parameter `a` is fixed to 1. The scale

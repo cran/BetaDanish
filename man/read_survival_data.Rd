@@ -4,42 +4,93 @@
 \alias{read_survival_data}
 \title{Read and Prepare Survival Data}
 \usage{
-read_survival_data(file, time_col, status_col = NULL, covar_cols = NULL)
+read_survival_data(
+  file,
+  time_col = NULL,
+  status_col = NULL,
+  covar_cols = NULL,
+  cause_col = NULL,
+  sep = ",",
+  dec = ".",
+  encoding = "unknown",
+  na.strings = c("NA", "", ".", "#N/A"),
+  drop_na = TRUE,
+  quiet = FALSE
+)
 }
 \arguments{
-\item{file}{Character string specifying the path to the file.}
+\item{file}{Path to a `.csv`, `.txt`, `.tsv`, `.xls` or `.xlsx` file.}
 
-\item{time_col}{Character string specifying the name of the time/survival column.}
+\item{time_col}{Name of the time column. If `NULL` (default), the column is
+guessed from a list of common names and the choice is reported.}
 
-\item{status_col}{Character string specifying the name of the event/censoring
-indicator column. If `NULL` (default), the function assumes all observations
-are uncensored and creates a status column filled with 1s.}
+\item{status_col}{Name of the event indicator (1 = event, 0 = censored). If
+`NULL`, guessed the same way; if no candidate is found, all observations
+are treated as uncensored.}
 
-\item{covar_cols}{Character vector specifying the names of covariate columns
-to keep. If `NULL` (default), no covariates are kept.}
+\item{covar_cols}{Covariate columns to retain. Either a character vector of
+column names, the string `"all"` to retain every column that is not part
+of the response, or `NULL` (default) to retain none. Whatever is dropped
+is named in a message unless `quiet = TRUE`.}
+
+\item{cause_col}{Name of a competing-risks cause column, or `NULL`. When
+supplied, code 0 means censored and positive integers index the causes.}
+
+\item{sep}{Field separator. Defaults to a comma. Use `"\\t"` for
+tab-delimited input, `";"` for semicolon-delimited.}
+
+\item{dec}{Decimal mark. Use `","` for European-format numerics.}
+
+\item{encoding}{File encoding passed to [utils::read.table()], for example
+`"UTF-8"` or `"latin1"`.}
+
+\item{na.strings}{Strings to treat as missing.}
+
+\item{drop_na}{Logical; drop incomplete rows. Default `TRUE`.}
+
+\item{quiet}{Logical; suppress the informational messages.}
 }
 \value{
-A clean `data.frame` containing the `time`, `status`, and any
-  specified covariates, ready to be passed to `fit_betadanish()`.
+A data frame with columns `time`, `status`, an optional `cause`, and
+  any retained covariates. The `"bd_data_report"` attribute is a list
+  recording the file, which columns were used, rows read and kept, number of
+  events, censoring proportion, retained and dropped columns, and the
+  inferred recording grid.
 }
 \description{
-A helper function to read survival data from CSV or Excel files and prepare
-it for analysis with the Beta-Danish package. It automatically handles missing
-status columns by assuming all observations are complete (uncensored).
+Reads survival data from a delimited text file or an Excel workbook and
+returns a clean data frame ready for [fit_betadanish()] and the regression
+fitters. Columns are selected by name, covariates keep their original type,
+and the result carries a report describing what was read.
 }
 \details{
-The function checks the file extension to determine how to read the data.
-For `.xlsx` or `.xls` files, the `readxl` package must be installed.
-Missing values (`NA`) in the specified columns will cause those rows to be
-dropped with a warning.
+Column guessing is deliberately conservative. Names meaning "censoring
+indicator" are excluded from the candidate list, because `censor = 1` means
+*censored* in some conventions and *observed* in others, and guessing wrong
+would silently invert every event. Name the column explicitly if in doubt.
+
+A covariate that happens to be called `time`, `status` or `cause` is renamed
+with a `_cov` suffix and a warning rather than colliding with the response.
+
+Excel input requires the `readxl` package.
 }
 \examples{
-tmp <- tempfile(fileext = ".csv")
-example_data <- data.frame(
-  survival_time = c(5, 8, 12, 16),
-  status = c(1, 1, 0, 1)
-)
-write.csv(example_data, tmp, row.names = FALSE)
-dat <- read_survival_data(tmp, time_col = "survival_time", status_col = "status")
-unlink(tmp)
+# A complete uncensored sample with a non-standard column name
+f <- system.file("extdata", "complete_sample.csv", package = "BetaDanish")
+dat <- read_survival_data(f, time_col = "survival_days", quiet = TRUE)
+attr(dat, "bd_data_report")$rows_kept
+
+# Column names guessed, and every covariate retained
+f2 <- system.file("extdata", "censored_sample.csv", package = "BetaDanish")
+dat2 <- read_survival_data(f2, covar_cols = "all", quiet = TRUE)
+names(dat2)
+
+# Competing risks
+f3 <- system.file("extdata", "competing_sample.csv", package = "BetaDanish")
+dat3 <- read_survival_data(f3, time_col = "time", cause_col = "cause",
+                           quiet = TRUE)
+table(dat3$cause)
+}
+\seealso{
+[fit_betadanish()], [fit_bd_aft()], [fit_bd_competing()]
 }

@@ -2,22 +2,46 @@
 % Please edit documentation in R/competing_risks.R
 \name{cif_betadanish}
 \alias{cif_betadanish}
-\title{Compute Cumulative Incidence Function (CIF)}
+\title{Cumulative Incidence Function}
 \usage{
-cif_betadanish(fit, tvec, cause_idx)
+cif_betadanish(fit, tvec, cause_idx, x = NULL)
 }
 \arguments{
-\item{fit}{An object of class `bd_competing`.}
+\item{fit}{An object of class `"bd_competing"`.}
 
 \item{tvec}{Numeric vector of times at which to evaluate the CIF.}
 
-\item{cause_idx}{Integer; the specific cause to evaluate (must match one of
-the causes in the fitted model).}
+\item{cause_idx}{The cause to evaluate, matching one of the fitted causes.}
+
+\item{x}{Optional covariate values at which to evaluate, one per covariate
+in the fit. Defaults to zero for every covariate, which is the reference
+subject. Ignored when the model has no covariates.}
 }
 \value{
-A numeric vector of CIF probabilities corresponding to `tvec`.
+A numeric vector of probabilities the same length as `tvec`.
 }
 \description{
-Computes the CIF for a specific cause from a fitted Beta-Danish competing
-risks model using numerical integration.
+Computes the cumulative incidence of one cause from a fitted Beta-Danish
+competing risks model,
+\eqn{F_j(t) = \int_0^t f_j(u)\prod_{l \neq j} S_l(u)\,du}.
+}
+\details{
+The integrand is the cause-specific density multiplied by the survival of
+every other cause, so the sum of all cause CIFs approaches the overall
+failure probability rather than one, and each individual CIF is bounded by
+it.
+
+Any covariate effect is folded into the scale parameter before integration,
+since accelerating time by \eqn{\lambda} is equivalent to dividing \eqn{k}
+by \eqn{\lambda}.
+}
+\examples{
+\donttest{
+d <- simulate_bd_competing_data(120, seed = 2)
+fit <- fit_bd_competing(d$time, d$cause, submodel = TRUE, n_starts = 1)
+cif_betadanish(fit, tvec = c(1, 5, 10), cause_idx = 1)
+}
+}
+\seealso{
+[fit_bd_competing()], [cif_compare()]
 }

@@ -10,27 +10,30 @@
 \method{plot}{bd_cure}(x, ...)
 }
 \arguments{
-\item{x}{A fitted \code{"bd_aft"} or \code{"bd_cure"} object.}
+\item{x}{A fitted `"bd_aft"` or `"bd_cure"` object.}
 
-\item{...}{Further graphical parameters.}
+\item{...}{Further graphical parameters passed to `plot`.}
 }
 \value{
-Invisibly returns \code{x}.
+Invisibly returns `x`.
 }
 \description{
-Diagnostic Cox-Snell residual plot for a fitted AFT or cure model.
+Diagnostic Cox-Snell residual plot for a fitted AFT or cure model. Under a
+correctly specified model the residuals behave like a unit exponential
+sample, so the Kaplan-Meier estimate of their cumulative hazard should
+follow the 45-degree line.
 }
 \examples{
 \donttest{
 set.seed(42)
 n <- 300
-x <- stats::rnorm(n)
-k <- exp(-0.5 - 0.3 * x)
-t_sim <- rbetadanish(n, a = 1, b = 2, c = 1.5, k = k)
-status <- stats::rbinom(n, 1, 0.85)  # ~15\% censoring
-dat <- data.frame(time = t_sim, status = status, x = x)
-fit <- fit_bd_aft(survival::Surv(time, status) ~ x, data = dat,
-                  n_starts = 5)
+xcov  <- stats::rnorm(n)
+k_i   <- exp(-0.5 - 0.3 * xcov)
+t_sim <- rbetadanish(n, a = 1, b = 2, c = 1.5, k = k_i)
+dat   <- data.frame(time = t_sim,
+                    status = stats::rbinom(n, 1, 0.85),
+                    x = xcov)
+fit <- fit_bd_aft(survival::Surv(time, status) ~ x, data = dat, n_starts = 5)
 plot(fit)
 }
 

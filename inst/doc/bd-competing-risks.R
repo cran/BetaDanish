@@ -35,3 +35,15 @@ if (!is.null(res$gray_test)) {
   cat("Gray's test was not produced.\n")
 }
 
+## ----eval = FALSE-------------------------------------------------------------
+# # The covariate column only exists when 'gammas' is supplied
+# d <- simulate_bd_competing_data(400, gammas = c(0.8, -0.8), seed = 1)
+# 
+# fit <- fit_bd_competing(d$time, d$cause, covariates = ~ x, data = d,
+#                         submodel = TRUE)
+# fit$coefficients
+
+## ----eval = FALSE-------------------------------------------------------------
+# cif_betadanish(fit, tvec = c(5, 20, 50), cause_idx = 1, x = 0)
+# cif_betadanish(fit, tvec = c(5, 20, 50), cause_idx = 1, x = 1)
+

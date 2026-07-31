@@ -1,7 +1,7 @@
 #' Fit Beta-Danish AFT Regression Model
 #'
 #' Fits an Accelerated Failure Time (AFT) regression model using the
-#' Complementary Exponentiated Danish (CED) baseline (Beta-Danish with a=1).
+#' Exponentiated Danish (ED) kernel, that is the Beta-Danish distribution with a = 1.
 #'
 #' @param formula A survival formula (e.g., `Surv(time, status) ~ age + treatment`).
 #' @param data A data frame containing the variables.
@@ -65,7 +65,15 @@ fit_bd_aft <- function(formula, data, n_starts = 10, method = "BFGS") {
   }
 
   # Optimize
-  fit <- optim_multistart(ll_fun, start_list, method = method)
+  ## The master script's recorded degenerate case was an ED AFT fit that
+  ## returned c = 296209.74. Shape explosion is rejected; large regression
+  ## coefficients are not, following .ch6_separated: near-separation is
+  ## information, not an error.
+  fit <- optim_multistart(
+    ll_fun, start_list, method = method,
+    accept = .bd_make_accept(n = length(surv_data$time),
+                             log_shape = c("log_b", "log_c"),
+                             log_scale = character(0)))
   if (is.null(fit)) stop("AFT optimization failed to converge.")
 
   # Extract and format results

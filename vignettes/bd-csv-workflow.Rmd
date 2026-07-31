@@ -1,0 +1,159 @@
+---
+title: "Analysing Your Own Data from a CSV File"
+author: "Bilal Ahmad & Dr. Muhammad Yameen Danish"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Analysing Your Own Data from a CSV File}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>",
+                      warning = FALSE, message = FALSE)
+library(BetaDanish)
+```
+
+Most users arrive with a spreadsheet rather than an R data frame. This vignette
+covers the file-driven path: from a CSV on disk to fitted models, tables and
+figures, without writing any modelling code.
+
+## What the file should look like
+
+Two columns are enough:
+
+| column | meaning |
+|---|---|
+| `time` | survival or failure time, strictly positive |
+| `status` | 1 if the event was observed, 0 if right-censored |
+
+Covariates go in additional columns. For competing risks, replace `status` with
+`cause`, coded 0 for censored and 1, 2, ... for the causes.
+
+If you would rather start from a working example than a description, write a
+template and fill it in:
+
+```{r}
+tmp <- tempfile(fileext = ".csv")
+bd_csv_template(tmp, type = "covariate", n = 6)
+read.csv(tmp)
+```
+
+## Reading a file
+
+`read_survival_data()` will guess the time and status columns when they carry
+recognisable names, and reports what it chose:
+
+```{r}
+f <- system.file("extdata", "censored_sample.csv", package = "BetaDanish")
+dat <- read_survival_data(f)
+head(dat)
+```
+
+Note that covariates are not retained by default. Ask for them by name, or use
+`covar_cols = "all"`:
+
+```{r}
+dat_all <- read_survival_data(f, covar_cols = "all", quiet = TRUE)
+names(dat_all)
+```
+
+The attached report records what happened, which is worth checking before you
+model anything:
+
+```{r}
+str(attr(dat_all, "bd_data_report"))
+```
+
+One field deserves attention. `grid_step` is non-`NA` when the times look
+recorded on a coarse grid -- whole days or whole months, say. Rounded times
+break the assumptions behind a point-density likelihood, so treat standard
+errors from such data as optimistic.
+
+### A word on `censor`
+
+Column-name guessing deliberately ignores names like `censor`. In some
+conventions `censor = 1` means *censored*; in others it means *observed*.
+Guessing wrong would silently invert every event in your dataset and still
+produce a plausible-looking fit, so you must name that column yourself.
+
+## One-call analysis
+
+`bd_analyze_csv()` does the whole thing: read, fit, tabulate, and optionally
+write results to a directory.
+
+```{r}
+res <- bd_analyze_csv(f, analysis = "univariate", model = "ED",
+                      compare = FALSE, n_starts = 5, seed = 1, quiet = TRUE)
+res
+```
+
+The tidy tables are in `$tables`:
+
+```{r}
+res$tables$estimates
+res$tables$goodness_of_fit
+```
+
+### Comparing the parent model against its submodel
+
+With `model = "both"`, both the four-parameter Beta-Danish and the
+three-parameter Exponentiated Danish submodel are fitted and compared:
+
+```{r}
+both <- bd_analyze_csv(f, model = "both", compare = FALSE,
+                       n_starts = 5, seed = 2, quiet = TRUE)
+both$tables$information_criteria
+both$tables$likelihood_ratio_test
+```
+
+Read that test alongside the identifiability diagnostics. On many datasets the
+four-parameter model fits well but is only weakly identified, and the
+likelihood ratio test will not reject the submodel. See the Identifiability
+section of `?fit_betadanish`, and the `guinea_pig` dataset for a contrasting
+case where the parent model is well identified.
+
+## Saving tables and figures
+
+Nothing is written to disk unless you name a directory. When you do, you get
+one CSV per table and a PNG per diagnostic figure:
+
+```{r}
+out <- file.path(tempdir(), "bd_results")
+saved <- bd_analyze_csv(f, model = "ED", compare = FALSE,
+                        output_dir = out, n_starts = 5, seed = 3, quiet = TRUE)
+basename(saved$files)
+```
+
+## Regression from a file
+
+The same entry point handles the regression models. Covariates are taken from
+the file, either all of them or the ones you name:
+
+```{r, eval = FALSE}
+g <- system.file("extdata", "covariate_sample.csv", package = "BetaDanish")
+
+# Accelerated failure time
+aft <- bd_analyze_csv(g, analysis = "aft",
+                      covariates = c("age", "thickness"))
+
+# Mixture cure model, cure fraction depending on ulceration
+cure <- bd_analyze_csv(g, analysis = "cure", cure_formula = ~ ulcer)
+
+# Competing risks
+h  <- system.file("extdata", "competing_sample.csv", package = "BetaDanish")
+cr <- bd_analyze_csv(h, analysis = "competing", cause_col = "cause")
+```
+
+## When something fails
+
+Each fit is attempted independently. If one fails, the message is recorded and
+the rest of the analysis still runs, so a difficult four-parameter fit does not
+cost you the submodel results beside it:
+
+```{r}
+res$failures
+```
+
+An empty result means everything succeeded.

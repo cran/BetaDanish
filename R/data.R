@@ -20,13 +20,13 @@
 
 #' Breaking Stress of Carbon Fibres
 #'
-#' Breaking stress (in Gba) of 100 carbon fibre specimens. This dataset exhibits
+#' Breaking stress (in GPa) of 100 carbon fibre specimens. This dataset exhibits
 #' a unimodal (increasing-then-decreasing) hazard pattern that classical
 #' distributions like the Weibull cannot adequately capture.
 #'
 #' @format A data frame with 100 rows and 2 columns:
 #' \describe{
-#'   \item{time}{Breaking stress in Gba}
+#'   \item{time}{Breaking stress in GPa}
 #'   \item{status}{Event indicator (1 = event occurred)}
 #' }
 #' @source Nichols, M. D., & Padgett, W. J. (2006). A bootstrap control chart for Weibull percentiles. Quality and Reliability Engineering International, 22(2), 141-151.
@@ -91,10 +91,10 @@
 #' }
 #' @source Miller, R. G. (1997). Survival Analysis. Wiley.
 #' @examples
-#' data(leukemia)
-#' \donttest{
-#' fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = leukemia)
-#' }
+#' data(leukemia)
+#' \donttest{
+#' fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = leukemia)
+#' }
 "leukemia"
 
 #' Malignant Melanoma Survival After Surgery
@@ -102,7 +102,7 @@
 #' Survival times for 205 patients with malignant melanoma after surgery.
 #' This rich clinical dataset includes multiple covariates and heavy censoring.
 #'
-#' @format A data frame with 205 rows and 6 columns:
+#' @format A data frame with 205 rows and 7 columns:
 #' \describe{
 #'   \item{time}{Survival time in days}
 #'   \item{status}{Event indicator (1 = died from melanoma, 0 = alive, 2 = other death)}
@@ -121,39 +121,48 @@
 #' fit <- fit_betadanish(survival::Surv(time, event) ~ age + thickness, data = melanoma)
 #' }
 "melanoma"
-#' Brain Cancer Survival Data
+#' Guinea Pig Survival Times
 #'
-#' A comprehensive dataset of 500 brain cancer patients, including survival times,
-#' censoring status, and multiple clinical covariates. This dataset was used to
-#' demonstrate Accelerated Failure Time (AFT) regression and Cure-Rate models
-#' using the Beta-Danish distribution.
+#' Survival times, in days, of 72 guinea pigs injected with virulent
+#' tubercle bacilli, taken from the principal regimen of the study of
+#' Bjerkedal (1960). A complete sample: every animal was observed to death,
+#' so `status` is 1 throughout.
 #'
-#' @format A data frame with 500 rows and 16 columns:
+#' @format A data frame with 72 rows and 2 columns:
 #' \describe{
-#'   \item{ID}{Patient identifier}
-#'   \item{Gender}{Patient gender (1 = Male, 0 = Female)}
-#'   \item{Age}{Age group (1 = Young, 2 = Middle, 3 = Old)}
-#'   \item{Area}{Geographic area (1 = Urban, 0 = Rural)}
-#'   \item{FH}{Family history of cancer (1 = Yes, 0 = No)}
-#'   \item{CMH}{Comorbid history (1 = Yes, 0 = No)}
-#'   \item{Grade}{Tumor grade (1 = I/II, 2 = III, 3 = IV)}
-#'   \item{Surgery}{Surgical intervention (1 = Yes, 0 = No)}
-#'   \item{Radiotherapy}{Radiotherapy treatment (1 = Yes, 0 = No)}
-#'   \item{Chemotherapy}{Chemotherapy treatment (1 = Yes, 0 = No)}
-#'   \item{Treatment}{Treatment type}
-#'   \item{Morphology}{Tumor morphology}
-#'   \item{Survstatus}{Survival status (1 = Event/Death, 0 = Censored)}
-#'   \item{Survtime}{Survival time in months}
-#'   \item{Types}{Tumor types classification}
-#'   \item{Morphology1}{Alternative morphology classification}
+#'   \item{time}{Survival time in days}
+#'   \item{status}{Event indicator, 1 for all observations (no censoring)}
 #' }
-#' @source Atomic Energy Cancer Hospital (NORI), Islamabad, Pakistan.
+#'
+#' @details
+#' These data are the reference case for a well-identified four-parameter
+#' fit. The scaled total-time-on-test transform is unimodal and the upper
+#' tail is determinate rather than heavy, and the maximum-likelihood fit of
+#' the full Beta-Danish model attains a finite interior optimum: every
+#' estimate lies strictly inside the parameter space, with
+#' \eqn{\hat b = 3.64} (Wald standard error 1.20), so that
+#' \eqn{(\hat b - 1)/\mathrm{SE} = 2.20} places \eqn{b} more than two
+#' standard errors clear of the \eqn{b = 1} identifiability ridge.
+#'
+#' By contrast, on `remission` and `carbon_fibres` the four-parameter fit
+#' sits on the flat \eqn{(a, c)} direction of the likelihood with
+#' \eqn{\hat a < 1} and is only weakly identified. Use this dataset when
+#' you want to see the parent model behaving well; see the Identifiability
+#' section of [fit_betadanish()] for what to watch for elsewhere.
+#'
+#' @source Bjerkedal, T. (1960). Acquisition of resistance in guinea pigs
+#'   infected with different doses of virulent tubercle bacilli.
+#'   *American Journal of Epidemiology*, 72(1), 130-148.
+#'   \doi{10.1093/oxfordjournals.aje.a120129}
+#'
 #' @examples
-#' data(brain_cancer)
+#' data(guinea_pig)
+#' summary(guinea_pig$time)
 #' \donttest{
-#' # Fit an AFT model using the brain cancer data
-#' fit <- fit_bd_aft(survival::Surv(Survtime, Survstatus) ~ Age + Grade + Surgery,
-#'                   data = brain_cancer, n_starts = 2)
-#' summary(fit)
+#' fit_full <- fit_betadanish(survival::Surv(time, status) ~ 1,
+#'                            data = guinea_pig)
+#' fit_sub  <- fit_betadanish(survival::Surv(time, status) ~ 1,
+#'                            data = guinea_pig, submodel = TRUE)
+#' compare_models(fit_full, fit_sub)
 #' }
-"brain_cancer"
+"guinea_pig"

@@ -7,7 +7,7 @@
 \format{
 A data frame with 100 rows and 2 columns:
 \describe{
-  \item{time}{Breaking stress in Gba}
+  \item{time}{Breaking stress in GPa}
   \item{status}{Event indicator (1 = event occurred)}
 }
 }
@@ -18,7 +18,7 @@ Nichols, M. D., & Padgett, W. J. (2006). A bootstrap control chart for Weibull p
 carbon_fibres
 }
 \description{
-Breaking stress (in Gba) of 100 carbon fibre specimens. This dataset exhibits
+Breaking stress (in GPa) of 100 carbon fibre specimens. This dataset exhibits
 a unimodal (increasing-then-decreasing) hazard pattern that classical
 distributions like the Weibull cannot adequately capture.
 }

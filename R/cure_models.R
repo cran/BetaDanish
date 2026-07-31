@@ -115,7 +115,11 @@ fit_bd_cure <- function(formula_aft, formula_cure, data, type = c("mixture", "pr
   }
   
   # Optimize
-  fit <- optim_multistart(ll_fun, start_list, method = method)
+  fit <- optim_multistart(
+    ll_fun, start_list, method = method,
+    accept = .bd_make_accept(n = length(time),
+                             log_shape = c("log_b", "log_c"),
+                             log_scale = character(0)))
   if (is.null(fit)) stop("Cure model optimization failed to converge.")
   
   est <- fit$estimate

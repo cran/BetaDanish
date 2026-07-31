@@ -2,16 +2,38 @@
 % Please edit documentation in R/report_betadanish.R
 \name{report_betadanish}
 \alias{report_betadanish}
-\title{Create a compact report from a BetaDanish model fit}
+\alias{print.betadanish_report}
+\title{Create a Compact Report from a Beta-Danish Model Fit}
 \usage{
 report_betadanish(fit)
+
+\method{print}{betadanish_report}(x, ...)
 }
 \arguments{
-\item{fit}{A fitted BetaDanish model object.}
+\item{fit}{A fitted `"betadanish"` object.}
+
+\item{x}{A `"betadanish_report"` object.}
+
+\item{...}{Ignored.}
 }
 \value{
-A list containing model summary information.
+An object of class `"betadanish_report"`.
+
+Invisibly returns `x`.
 }
 \description{
-Create a compact report from a BetaDanish model fit
+Collects the headline quantities from a fitted model into a small object with
+a `print` method. Information criteria are computed from the fitted
+log-likelihood via the `logLik` method, so they cannot fall out of step with
+the fit.
+}
+\examples{
+\donttest{
+set.seed(1)
+dat <- simulate_bd_data(120, a = 1, b = 3, c = 2, k = 0.5)
+fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = dat,
+                      submodel = TRUE)
+report_betadanish(fit)
+}
+
 }

@@ -3,6 +3,7 @@
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/bilal-aiou/BetaDanish/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bilal-aiou/BetaDanish/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/bilal-aiou/BetaDanish/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/bilal-aiou/BetaDanish/actions/workflows/pkgdown.yaml)
+[![CRAN status](https://www.r-pkg.org/badges/version/BetaDanish)](https://CRAN.R-project.org/package=BetaDanish)
 [![License: GPL-3](https://img.shields.io/badge/License-GPL--3-blue.svg)](https://www.r-project.org/Licenses/GPL-3)
 [![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 <!-- badges: end -->
@@ -10,28 +11,60 @@
 ## Overview
 
 The **BetaDanish** package implements the four-parameter Beta-Danish
-distribution and its three-parameter Exponentiated Danish (ED)
-submodel for survival, reliability, and lifetime-data analysis. The
-distribution was introduced by Ahmad and Danish (2025) and offers a
-flexible alternative to classical lifetime models such as the
-Weibull, gamma, and log-normal, while accommodating monotonic,
-unimodal, and bathtub-shaped hazards within a single parametric
-family.
+distribution and its three-parameter Exponentiated Danish (ED) submodel for
+survival, reliability and lifetime-data analysis. The distribution was
+introduced by Ahmad and Danish (2025) and accommodates monotonic, unimodal
+and bathtub-shaped hazards within a single parametric family.
 
-Beyond the core distribution, the package provides a comprehensive
-toolkit for modern survival modelling:
+Its upper tail is regularly varying with index `-b`, so the survival function
+decays polynomially rather than exponentially. That is what makes the family
+useful for heavy-tailed lifetime data, and it has two consequences the package
+takes seriously: `E(Z^r)` is finite only when `b > r`, and the moment
+generating function does not exist at all.
 
-- Maximum-likelihood and **Bayesian** inference for complete and
-  right-censored data
-- **Accelerated failure time (AFT)** regression
-- Mixture and **promotion-time cure** models
-- **Competing risks** analysis with Aalen-Johansen comparisons and
-  Gray's test
-- Closed-form moments, **Shannon entropy**, order statistics,
-  mean residual life, hazard-shape classification, and
-  stress-strength reliability
-- A complete diagnostic toolkit: survival, hazard, density, P-P, Q-Q
-  and **Cox-Snell residual** plots
+### Distribution functions
+
+`dbetadanish()`, `pbetadanish()`, `qbetadanish()`, `sbetadanish()`,
+`hbetadanish()` and `rbetadanish()`, with `ded()`, `ped()`, `qed()`, `sed()`,
+`hed()` and `red()` naming the ED submodel directly. All are evaluated so as
+to hold accuracy far into the tail: the quantile function uses the beta mirror
+identity rather than subtracting a near-one probability from one, and the
+survival function is never formed by cancellation.
+
+### Estimation and inference
+
+- Maximum likelihood for complete and right-censored samples
+- A **grouped likelihood** for times recorded on a coarse grid, where treating
+  a rounded value as exact would understate every standard error
+- **Ridge-penalized** fitting for the weakly identified regime
+- **Bayesian** sampling by random-walk Metropolis
+- Log-scale Wald and **profile-likelihood** intervals; an unbounded profile is
+  reported as such rather than truncated at the grid edge
+- `bd_identified_coef()` reports the fit through the identified composite
+  `ac`, which is what the data determine when `a` and `c` cannot be separated
+- Diagnostics that warn when a fit lands on the `b = 1` ridge, when the
+  information matrix is singular, or when starts were discarded as degenerate
+
+### Structural properties
+
+Raw, incomplete and conditional moments with their existence conditions;
+Shannon (closed form), Renyi and Tsallis entropies; mean residual life and
+mean inactivity time; mean deviations; Lorenz and Bonferroni curves;
+probability weighted moments; order-statistic densities, distributions and
+moments; stress-strength reliability; hazard-shape classification via
+Glaser's criterion; and the tail index.
+
+### Regression
+
+Accelerated failure time models, mixture and promotion-time cure models, and
+competing risks with Aalen-Johansen comparison and Gray's test, each with
+Cox-Snell residual diagnostics.
+
+### Working from a file
+
+`bd_analyze_csv()` takes a delimited file or spreadsheet through reading,
+fitting, tabulation and optional figure output in one call. See the
+"Analysing Your Own Data from a CSV File" vignette.
 
 ## Installation
 
@@ -141,10 +174,12 @@ See the **Bayesian Estimation** vignette for full details.
 ### AFT regression
 
 ```r
-data("brain_cancer")
+data("melanoma")
+melanoma$event <- ifelse(melanoma$status == 1, 1, 0)
+
 fit_aft <- fit_bd_aft(
-  survival::Surv(Survtime, Survstatus) ~ Age + Grade + Surgery,
-  data = brain_cancer
+  survival::Surv(time, event) ~ age + thickness,
+  data = melanoma
 )
 summary(fit_aft)
 plot(fit_aft)   # Cox-Snell residual diagnostic
@@ -184,17 +219,54 @@ reported for cause equality.
 | `bd_entropy_shannon()` | Shannon (differential) entropy |
 | `bd_order_stat_pdf()` | r-th order statistic density |
 
+## Working from a CSV File
+
+The whole workflow can be driven from a spreadsheet, with no modelling
+code. Two columns are enough: `time` and `status` (1 = event,
+0 = censored).
+
+```r
+# Not sure of the layout? Write a template and fill it in.
+bd_csv_template("my_data.csv", type = "covariate")
+
+# Read a file; time and status are guessed from common column names.
+dat <- read_survival_data("my_data.csv", covar_cols = "all")
+attr(dat, "bd_data_report")   # what was read, dropped, and inferred
+
+# Or run the whole analysis in one call.
+res <- bd_analyze_csv(
+  "my_data.csv",
+  analysis   = "univariate",   # or "aft", "cure", "competing"
+  model      = "both",         # Beta-Danish and the ED submodel
+  output_dir = "results"       # tables as CSV, figures as PNG
+)
+
+res                       # headline summary
+res$tables$estimates      # tidy parameter table
+res$failures              # empty if everything succeeded
+```
+
+Nothing is written to disk unless `output_dir` is supplied. Each model is
+fitted independently, so one failure is recorded rather than losing the
+whole run.
+
+| Function | Purpose |
+|---|---|
+| `bd_analyze_csv()` | Read, fit, tabulate and optionally save |
+| `read_survival_data()` | Read and validate a file into a data frame |
+| `bd_csv_template()` | Write a correctly shaped skeleton CSV |
+
 ## Built-in Datasets
 
 | Dataset | n | Description |
 |---|---|---|
 | `remission` | 128 | Bladder cancer remission times |
-| `carbon_fibres` | 100 | Breaking stress of carbon fibres (Gba) |
+| `carbon_fibres` | 100 | Breaking stress of carbon fibres (GPa) |
 | `transplant` | 91 | Bone marrow transplant survival |
 | `aarset` | 50 | Aarset device failure times (bathtub hazard) |
 | `leukemia` | 23 | Acute myelogenous leukemia survival |
 | `melanoma` | 205 | Malignant melanoma post-surgery |
-| `brain_cancer` | varies | Brain cancer survival with comorbidities |
+| `guinea_pig` | 72 | Guinea pig survival, virulent tubercle bacilli (days) |
 
 ## Vignettes
 
@@ -217,18 +289,33 @@ browseVignettes("BetaDanish")
 
 ## Citation
 
-If you use BetaDanish in published work, please cite:
+If you use BetaDanish in published work, please cite the underlying
+article. The package implements the three-parameter Exponentiated
+Danish (ED) submodel introduced in the published article, as well as
+the four-parameter Beta-Danish distribution developed in the
+accompanying doctoral thesis.
 
-> Ahmad, B., & Danish, M. Y. (2025). The Beta-Danish distribution
-> for lifetime data analysis. *Journal of Applied Mathematics,
-> Statistics and Informatics*, 21(1).
+**Article (introduces the three-parameter ED submodel):**
+
+> Ahmad, B., & Danish, M. Y. (2025). Development and characterization
+> of a flexible three-parameter lifetime distribution: theoretical
+> properties and real-world applications.
+> *Journal of Applied Mathematics, Statistics and Informatics*, 21(1).
 > <https://doi.org/10.2478/jamsi-2025-0010>
+
+**Thesis (introduces the four-parameter Beta-Danish extension):**
+
+> Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The
+> Development and Characterization of a New Four-Parameter Lifetime
+> Distribution* (Ph.D. thesis). Allama Iqbal Open University,
+> Islamabad, Pakistan. Supervised by Dr. Muhammad Yameen Danish.
 
 A BibTeX entry is available via:
 
 ```r
 citation("BetaDanish")
 ```
+
 
 ## References
 

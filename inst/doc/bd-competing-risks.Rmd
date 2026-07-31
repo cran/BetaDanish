@@ -65,3 +65,44 @@ if (!is.null(res$gray_test)) {
   cat("Gray's test was not produced.\n")
 }
 ```
+
+## Covariates (new in 0.3.0)
+
+Each cause can carry its own coefficient vector, acting on the time scale:
+
+$$T_j = T_{0j}\exp(x'\gamma_j)$$
+
+so a positive coefficient lengthens time to failure from that cause. The
+same covariate may therefore accelerate one cause and retard another, which
+is the point of fitting them separately.
+
+```{r, eval = FALSE}
+# The covariate column only exists when 'gammas' is supplied
+d <- simulate_bd_competing_data(400, gammas = c(0.8, -0.8), seed = 1)
+
+fit <- fit_bd_competing(d$time, d$cause, covariates = ~ x, data = d,
+                        submodel = TRUE)
+fit$coefficients
+```
+
+The intercept is dropped from the design matrix, because each cause already
+has its own scale parameter `k` that an intercept would be confounded with.
+
+`cif_betadanish()` takes the covariate values at which to evaluate the
+cumulative incidence, defaulting to the reference subject:
+
+```{r, eval = FALSE}
+cif_betadanish(fit, tvec = c(5, 20, 50), cause_idx = 1, x = 0)
+cif_betadanish(fit, tvec = c(5, 20, 50), cause_idx = 1, x = 1)
+```
+
+A covariate effect folds exactly into the scale: scaling time by
+$\lambda$ maps $k$ to $k/\lambda$, so no re-integration is needed.
+
+### A caution worth repeating
+
+Independence of the latent failure times is an *identifying* assumption, not
+a testable one. Under positive dependence the working independence model
+biases the cause-specific cumulative incidence functions downward. Overall
+survival is more robust than the individual marginals; where conclusions
+rest on absolute CIFs, add a copula-based sensitivity analysis.

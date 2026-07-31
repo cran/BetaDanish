@@ -6,6 +6,7 @@
 \alias{pbetadanish}
 \alias{qbetadanish}
 \alias{rbetadanish}
+\alias{sbetadanish}
 \alias{hbetadanish}
 \title{The Beta-Danish Distribution}
 \usage{
@@ -17,55 +18,96 @@ qbetadanish(p, a, b, c, k, lower.tail = TRUE, log.p = FALSE)
 
 rbetadanish(n, a, b, c, k)
 
+sbetadanish(x, a, b, c, k, log = FALSE)
+
 hbetadanish(x, a, b, c, k, log = FALSE)
 }
 \arguments{
 \item{x, q}{Vector of quantiles (time points).}
 
-\item{a}{Shape parameter (beta generator). Set `a = 1` for the 3-parameter submodel.}
+\item{a}{Shape parameter (beta generator). Set `a = 1` for the
+three-parameter Exponentiated Danish (ED) submodel.}
 
-\item{b}{Shape parameter (beta generator / tail weight).}
+\item{b}{Shape parameter (beta generator). Governs the upper tail: the
+survival function is regularly varying with index `-b`.}
 
 \item{c}{Shape parameter (baseline shape).}
 
 \item{k}{Scale parameter (baseline scale).}
 
-\item{log, log.p}{Logical; if TRUE, probabilities/densities are given as log.}
+\item{log, log.p}{Logical; if `TRUE`, densities/probabilities are returned on
+the log scale.}
 
-\item{lower.tail}{Logical; if TRUE (default), probabilities are P[X <= x], otherwise P[X > x].}
+\item{lower.tail}{Logical; if `TRUE` (default) probabilities are
+\eqn{P[X \le x]}, otherwise \eqn{P[X > x]}.}
 
 \item{p}{Vector of probabilities.}
 
 \item{n}{Number of observations to generate.}
 }
 \value{
-`dbetadanish` gives the density, `pbetadanish` gives the distribution function,
-`qbetadanish` gives the quantile function, `hbetadanish` gives the hazard function,
-and `rbetadanish` generates random deviates.
+`dbetadanish` gives the density, `pbetadanish` the distribution function,
+`qbetadanish` the quantile function, `sbetadanish` the survival function,
+`hbetadanish` the hazard function, and `rbetadanish` generates random
+deviates. Length is the maximum of the lengths of the numeric arguments.
 }
 \description{
-Density, distribution function, quantile function, hazard function, and
-random generation for the four-parameter Beta-Danish distribution.
+Density, distribution function, quantile function, hazard function, survival
+function and random generation for the four-parameter Beta-Danish
+distribution.
 }
 \details{
-The Beta-Danish distribution is a highly flexible lifetime distribution capable
-of modeling decreasing, increasing, unimodal, and bathtub-shaped hazard rates.
+With baseline \eqn{G(t) = \{kt/(1+kt)\}^{c}}, the Beta-Danish CDF is the
+regularised incomplete beta function \eqn{F(t) = I_{G(t)}(a, b)} and the
+density is
+\deqn{f(t) = \frac{c\,k^{ca}\,t^{ca-1}}{B(a,b)\,(1+kt)^{ca+1}}
+             \bigl\{1 - G(t)\bigr\}^{b-1}.}
+The family accommodates decreasing, increasing, unimodal and bathtub-shaped
+hazard rates.
 }
+\section{Numerical notes}{
+
+All three of the density, distribution and quantile functions are evaluated
+so as to retain full relative precision in the upper tail, which is where
+this family is distinctive and where naive implementations fail:
+
+* \eqn{\log\{1 - G(t)\}} is formed as
+  `log(-expm1(c * -log1p(1/(k*t))))`. Writing \eqn{\log G} as
+  \eqn{-c\,\log(1 + 1/kt)} avoids the cancellation in
+  \eqn{\log(kt) - \log(1+kt)}, which loses all significant digits once
+  \eqn{kt \gtrsim 10^{15}}.
+* The survival function uses the beta mirror identity
+  \eqn{1 - I_{y}(a,b) = I_{1-y}(b,a)}, so no probability near one is ever
+  subtracted from one.
+* `qbetadanish` obtains \eqn{1 - u} directly via
+  \eqn{1 - q\beta(p; a, b) = q\beta(p; b, a)} with the tail flag reversed,
+  so `1 - p` is never formed.
+
+Parameters recycle element-wise against `x`, `q` or `p` following the usual
+convention for R distribution functions, so a per-observation scale (as
+produced by an AFT link) may be supplied directly.
+
+As \eqn{t \to \infty}, \eqn{S(t) \propto t^{-b}}; consequently
+\eqn{E(X^{r})} is finite if and only if \eqn{b > r}.
+}
+
 \examples{
-# Density
 dbetadanish(x = 2, a = 1.5, b = 2, c = 3, k = 0.5)
-
-# CDF
 pbetadanish(q = 2, a = 1.5, b = 2, c = 3, k = 0.5)
-
-# Hazard
+qbetadanish(p = 0.5, a = 1.5, b = 2, c = 3, k = 0.5)
 hbetadanish(x = 2, a = 1.5, b = 2, c = 3, k = 0.5)
-
-# Random generation
 rbetadanish(n = 10, a = 1.5, b = 2, c = 3, k = 0.5)
+
+# Per-observation scale, as used by the AFT link
+dbetadanish(c(1, 2, 3), a = 1, b = 2, c = 1.5, k = c(0.5, 1, 2))
+
+# The survival tail is regularly varying with index -b
+round(log(sbetadanish(c(1e10, 1e12), 1.5, 3, 2, 1)), 4)
 
 }
 \references{
-Ahmad, B., & Danish, M. Y. (2026). Development and Characterization of a
-Flexible Three-Parameter Lifetime Distribution.
+Ahmad, B., & Danish, M. Y. (2025). Development and characterization of a
+flexible three-parameter lifetime distribution: theoretical properties and
+real-world applications. *Journal of Applied Mathematics, Statistics and
+Informatics*, 21(1). \doi{10.2478/jamsi-2025-0010}
 }

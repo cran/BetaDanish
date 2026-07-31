@@ -137,3 +137,77 @@ compare_distributions(fit_full)
 ## 7. Conclusion
 
 The `BetaDanish` package offers a robust, flexible, and user-friendly environment for advanced survival analysis. By unifying standard MLE fitting, comprehensive diagnostics, and advanced modules (AFT, Cure, Competing Risks) under a single framework, it serves as a powerful tool for statisticians and applied researchers alike.
+
+## New in 0.3.0
+
+```{r bd_intro_setup, include = FALSE}
+# The blocks above this point are ```r display blocks, which knitr does
+# not execute, so the package has not been attached yet.
+library(BetaDanish)
+```
+
+Three groups of functions were added after the 0.2.0 release.
+
+### Structural properties
+
+```{r}
+p <- list(a = 1.5, b = 5, c = 2, k = 1)
+
+bd_moment_summary(p$a, p$b, p$c, p$k)
+bd_entropy_shannon(p$a, p$b, p$c, p$k)
+bd_stress_strength(strength = p, stress = p)   # identical laws: one half
+```
+
+Moments exist only when `b > r`, and the package enforces it rather than
+returning a plausible-looking number from a truncated sum:
+
+```{r}
+bd_moments(1:4, a = 1.5, b = 3, c = 2, k = 1)   # the fourth is Inf
+bd_tail_index(a = 1.5, b = 3, c = 2, k = 1)$moment_condition
+```
+
+### Shape, before and after fitting
+
+`bd_ttt_plot()` reads the hazard shape from the data alone, with no model
+assumed. `bd_hazard_shape()` does the same from a fitted parameter set, so
+the two can be compared.
+
+```{r, fig.width = 6, fig.height = 4}
+data(guinea_pig)
+ttt <- bd_ttt_plot(guinea_pig$time)
+attr(ttt, "shape")
+```
+
+### Interval estimation
+
+All four parameters are positive, so a symmetric Wald interval on the
+natural scale can cross zero. `bd_wald_ci()` builds on the log scale
+instead, and `bd_profile_ci()` inverts the likelihood ratio test. When the
+profile never returns below the critical threshold there is no finite upper
+bound, and the honest report is a lower bound rather than a point estimate
+with an interval around it.
+
+```{r, eval = FALSE}
+fit <- fit_betadanish(survival::Surv(time, status) ~ 1, data = remission,
+                      submodel = TRUE)
+bd_wald_ci(fit)
+bd_profile_plot(bd_profile_ci(fit, "b"))
+
+# For the four-parameter model, report the identified composite
+bd_identified_coef(fit_betadanish(survival::Surv(time, status) ~ 1,
+                                  data = remission))
+```
+
+### Simulation studies
+
+`bd_simulation_study()`, `bd_simulation_cure()` and
+`bd_simulation_competing()` report bias, RMSE, the ratio of mean estimated
+standard error to empirical standard deviation, and Wald coverage. Read the
+last two together: a ratio well below one means the asymptotic standard
+errors are optimistic at that sample size, and coverage falls short as a
+consequence.
+
+```{r, eval = FALSE}
+bd_simulation_study(n = c(50, 100, 200), n_sim = 500,
+                    truth = c(b = 3, c = 2, k = 0.5), submodel = TRUE)
+```
