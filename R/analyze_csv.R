@@ -35,7 +35,7 @@
 #' @noRd
 .bd_est_table <- function(fit, label) {
   est <- fit$coefficients
-  se  <- sqrt(pmax(diag(fit$vcov), 0))
+  se  <- .bd_se_from_vcov(fit$vcov, names(est))   # NA, never 0, if degenerate
   z   <- stats::qnorm(0.975)
   data.frame(
     model      = label,
@@ -59,8 +59,12 @@
                n       = .bd_or(f$nobs, NA_integer_),
                npar    = .bd_or(f$npar, length(f$coefficients)),
                logLik  = as.numeric(f$logLik),
-               AIC     = tryCatch(stats::AIC(f), error = function(e) NA_real_),
-               BIC     = tryCatch(stats::BIC(f), error = function(e) NA_real_),
+               ## NA for a fit on the edge of the parameter box (a supremum)
+               AIC     = if (!is.null(f$AIC)) as.numeric(f$AIC) else
+                           tryCatch(stats::AIC(f), error = function(e) NA_real_),
+               BIC     = if (!is.null(f$BIC)) as.numeric(f$BIC) else
+                           tryCatch(stats::BIC(f), error = function(e) NA_real_),
+               flag    = .bd_or(f$flag, "ok"),
                row.names = NULL, stringsAsFactors = FALSE)
   })
   rows <- Filter(Negate(is.null), rows)
@@ -116,12 +120,16 @@
 #' @param compare Logical; benchmark against standard lifetime distributions
 #'   via [compare_distributions()]. Requires the `flexsurv` package; skipped
 #'   with a recorded note if it is absent. Default `TRUE`.
-#' @param bayes Logical; also run [bayes_betadanish()]. Requires `MCMCpack`.
-#'   Default `FALSE`, since it is slow.
+#' @param bayes Logical; also run [bayes_betadanish()] with its default
+#'   adaptive sampler, which needs no extra package. Default `FALSE`, since it
+#'   is slow.
 #' @param cure_formula Right-hand-side formula for the cure fraction when
 #'   `analysis = "cure"`, for example `~ group`. Defaults to the retained
 #'   covariates.
 #' @param cure_type `"mixture"` (default) or `"promotion"`.
+#' @param competing_submodel Logical; for `analysis = "competing"`, use
+#'   the three-parameter Exponentiated Danish kernel for every cause. This
+#'   is more stable for small or weakly identified samples. Default `FALSE`.
 #' @param output_dir Directory to write results to. `NULL` (default) writes
 #'   nothing. The directory is created if it does not exist.
 #' @param n_starts Number of random starting points for each fit.
@@ -186,6 +194,7 @@ bd_analyze_csv <- function(file,
                            bayes = FALSE,
                            cure_formula = NULL,
                            cure_type = c("mixture", "promotion"),
+                           competing_submodel = FALSE,
                            output_dir = NULL,
                            n_starts = 10,
                            seed = NULL,
@@ -194,6 +203,9 @@ bd_analyze_csv <- function(file,
   analysis  <- match.arg(analysis)
   model     <- match.arg(model)
   cure_type <- match.arg(cure_type)
+  if (!is.logical(competing_submodel) || length(competing_submodel) != 1L ||
+      is.na(competing_submodel))
+    stop("'competing_submodel' must be TRUE or FALSE.", call. = FALSE)
   if (!is.null(seed)) set.seed(seed)
   say <- function(...) if (!isTRUE(quiet)) message(...)
 
@@ -271,7 +283,9 @@ bd_analyze_csv <- function(file,
     say("Fitting cause-specific models for ",
         length(setdiff(unique(dat$cause), 0)), " cause(s).")
     out$fits$CR <- .bd_try(
-      fit_bd_competing(time = dat$time, cause = dat$cause, n_starts = n_starts),
+      fit_bd_competing(time = dat$time, cause = dat$cause,
+                       submodel = competing_submodel,
+                       n_starts = n_starts),
       "fit_bd_competing", store)
 
     if (!is.null(out$fits$CR)) {
@@ -297,6 +311,8 @@ bd_analyze_csv <- function(file,
     if (length(gof)) {
       out$tables$goodness_of_fit <- do.call(rbind, Map(function(g, nm)
         data.frame(model = nm, as.list(g$IC), KS = g$KS_Statistic,
+                   CvM = .bd_or(g$CvM_Statistic, NA_real_),
+                   AD = .bd_or(g$AD_Statistic, NA_real_),
                    row.names = NULL, check.names = FALSE),
         gof, names(gof)))
     }
@@ -324,16 +340,11 @@ bd_analyze_csv <- function(file,
 
   ## ---- optional Bayesian run ------------------------------------------------
   if (isTRUE(bayes)) {
-    if (requireNamespace("MCMCpack", quietly = TRUE)) {
-      say("Running the Bayesian sampler; this takes a while.")
-      out$extras$bayes <- .bd_try(
-        bayes_betadanish(dat$time, dat$status,
-                         submodel = !identical(model, "BD"), seed = seed),
-        "bayes_betadanish", store)
-    } else {
-      store$failures <- c(store$failures,
-                          c(bayes_betadanish = "the 'MCMCpack' package is not installed"))
-    }
+    say("Running the Bayesian sampler; this takes a while.")
+    out$extras$bayes <- .bd_try(
+      bayes_betadanish(dat$time, dat$status,
+                       submodel = !identical(model, "BD"), seed = seed),
+      "bayes_betadanish", store)
   }
 
   ## ---- data report table ----------------------------------------------------

@@ -11,7 +11,9 @@ bd_profile_ci(
   level = 0.95,
   grid = NULL,
   n_grid = 60L,
-  method = "Nelder-Mead"
+  method = "Nelder-Mead",
+  extend = TRUE,
+  max_extend = 150L
 )
 
 \method{print}{bd_profile}(x, ...)
@@ -25,20 +27,31 @@ bd_profile_ci(
 \item{level}{Confidence level. Default 0.95.}
 
 \item{grid}{Optional numeric vector of values to scan. If `NULL` (default) a
-log-spaced grid is built around the estimate.}
+log-spaced grid is built around the estimate and extended as needed; a
+grid you supply is used exactly as given.}
 
-\item{n_grid}{Number of grid points when `grid` is `NULL`.}
+\item{n_grid}{Number of points in the initial grid when `grid` is `NULL`.}
 
 \item{method}{Optimisation method for the nuisance parameters, passed to
 [stats::optim()].}
+
+\item{extend}{Logical; when `grid` is `NULL`, extend the grid outward until
+the profile crosses the cut-off or the parameter box is reached. Default
+`TRUE`.}
+
+\item{max_extend}{Maximum number of extra grid points on each side.
+Default 150.}
 
 \item{x}{A `"bd_profile"` object.}
 
 \item{...}{Ignored.}
 }
 \value{
-An object of class `"bd_profile"` with the interval, the grid, the
-  profile log-likelihood, and the critical value.
+An object of class `"bd_profile"` with the interval (`lower`,
+  `upper`), the flags `lower_closed` and `upper_closed`, `open_below` and
+  `open_above`, the grid, the profile log-likelihood, the critical value,
+  `logLik_fit` (the log-likelihood of the fit) and `logLik_max` (the
+  highest log-likelihood reached, from which the interval is measured).
 }
 \description{
 Profiles one parameter, maximising over the others, and inverts the
@@ -49,14 +62,29 @@ The interval is the set of values \eqn{\theta_0} for which
 \eqn{2\{\ell_{\max} - \ell_p(\theta_0)\} \le \chi^2_{1,\,\mathrm{level}}},
 with \eqn{\ell_p} the profile log-likelihood.
 
+With the default grid the profile is first evaluated on a log-spaced grid
+from \eqn{\hat\theta/20} to \eqn{20\hat\theta}, every point started at the
+maximum-likelihood estimate. Where the profile has not yet fallen below the
+cut-off at an end of that grid, the grid is extended outward in the same
+logarithmic steps, each new point started from its neighbour's nuisance
+estimates, until the profile drops below the cut-off or the parameter box
+of [fit_betadanish()] is reached. A crossing that is bracketed by two grid
+points is located by linear interpolation on the log scale, and the
+endpoint is flagged closed. This follows the profile routine of the thesis,
+which replaced a fixed grid whose edges had been reported as interval
+endpoints.
+
 **An open upper bound is a result, not a failure.** For a weakly identified
 tail index the profile can stay inside the critical region all the way to
-the top of the grid, in which case `upper` is returned as `Inf` and the
-honest report is a lower bound rather than a point estimate with an
-interval. The thesis pipeline records precisely this on the breaking-stress
-data, where the profile gives \eqn{b \ge 26.1} with no finite upper bound.
+the edge of the parameter box, in which case `upper` is returned as `Inf`
+and the honest report is a lower bound rather than a point estimate with an
+interval. An open lower end is returned as the lowest value scanned, with
+`open_below = TRUE`.
 
-Widening `grid` will not manufacture a bound; it only confirms the flatness.
+The interval is measured from the highest log-likelihood reached, by the fit
+or by the profile. If the profile rises above the fitted maximum, the fit
+stopped short of the optimum; a warning says so, except for a penalised fit,
+whose estimate is by design not the unpenalised maximum.
 }
 \examples{
 \donttest{
@@ -67,6 +95,11 @@ p <- bd_profile_ci(fit, "b")
 p
 }
 }
+\references{
+Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The Development and
+Characterization of a New Four-Parameter Lifetime Distribution* (Ph.D.
+thesis). Allama Iqbal Open University, Islamabad, Pakistan.
+}
 \seealso{
-[bd_wald_ci()], [bd_identified_coef()]
+[bd_wald_ci()], [bd_identified_coef()], [bd_profile_plot()]
 }

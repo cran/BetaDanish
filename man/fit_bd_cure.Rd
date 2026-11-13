@@ -10,7 +10,8 @@ fit_bd_cure(
   data,
   type = c("mixture", "promotion"),
   n_starts = 10,
-  method = "BFGS"
+  method = "BFGS",
+  submodel = TRUE
 )
 }
 \arguments{
@@ -25,20 +26,74 @@ fit_bd_cure(
 \item{n_starts}{Integer; number of random starts for optimization.}
 
 \item{method}{Optimization method passed to `maxLik`.}
+
+\item{submodel}{Logical; `TRUE` (default) uses the Exponentiated Danish
+kernel (\eqn{a = 1}), as in earlier versions. `FALSE` fits the
+four-parameter Beta-Danish kernel, which adds `log_a` to the parameter
+vector.}
 }
 \value{
-An object of class `bd_cure`.
+An object of class `bd_cure` with components including
+  `coefficients`, `logLik`, `vcov`, `npar`, `nobs`, `AIC`, `BIC`,
+  `separated` (logical; see Details), `submodel` and, for the
+  four-parameter kernel, `logLik_submodel`, the log-likelihood of the
+  Exponentiated Danish cure fit it is nested over.
 }
 \description{
-Fits mixture and promotion-time (non-mixture) cure models using the 
-Beta-Danish AFT baseline.
+Fits mixture and promotion-time (non-mixture) cure models with a
+Beta-Danish AFT latency distribution: the three-parameter Exponentiated
+Danish kernel by default, or the four-parameter Beta-Danish kernel with
+`submodel = FALSE`.
 }
 \details{
-In the **mixture** model, the population is split into susceptible and cured 
-fractions. The susceptible probability is modeled via logistic regression: 
-`pi = exp(Z %*% gamma) / (1 + exp(Z %*% gamma))`.
+In the **mixture** model, the population is split into susceptible and cured
+fractions. The susceptible probability is modeled via logistic regression:
+`pi = exp(Z \%*\% gamma) / (1 + exp(Z \%*\% gamma))`.
 
-In the **promotion-time** (non-mixture) model, the cure fraction is derived 
-from a latent Poisson process of clonogenic cells: `theta = exp(Z %*% gamma)`. 
+In the **promotion-time** (non-mixture) model, the cure fraction is derived
+from a latent Poisson process of clonogenic cells: `theta = exp(Z \%*\% gamma)`.
 The cure fraction is `exp(-theta)`.
+}
+\section{Four-parameter kernel}{
+
+With `submodel = FALSE` the Exponentiated Danish cure model is fitted
+first. Its optimum, with \eqn{\log a = 0} inserted, is a feasible point of
+the Beta-Danish model and is used as a start, together with starts along
+the \eqn{(a, c)} ridge through it (\eqn{a = f}, \eqn{c = c_{ED}/f} for
+\eqn{f \in \{1/30, 1/8, 1/3, 1, 3, 8, 30\}}) and random starts. A
+Beta-Danish fit with a lower log-likelihood than its own Exponentiated
+Danish submodel can only mean that the optimiser failed, so it is refused
+with an error rather than reported. Information criteria count every
+element of the parameter vector: the baseline rate is carried by the
+latency intercept, so nothing is redundant. This follows the Chapter 6
+covariate cure ladders of the thesis.
+
+The latency rate is \eqn{k_i = \exp(x_i^\top\delta)} in both kernels. A fit
+whose shape parameters exceed 500 is rejected as the degenerate limit of the
+family. A fit with a regression coefficient (other than an intercept)
+above 15 in absolute value is flagged `separated = TRUE`: it is a valid
+maximum of the likelihood but weakly identified in that direction.
+}
+
+\examples{
+\donttest{
+set.seed(5)
+n <- 200
+grp <- rep(0:1, length.out = n)
+cured <- stats::rbinom(n, 1, ifelse(grp == 1, 0.4, 0.2)) == 1
+t_u <- rbetadanish(n, a = 1, b = 3, c = 1.5, k = 0.3)
+cens <- stats::runif(n, 0, 30)
+t_obs <- ifelse(cured, cens, pmin(t_u, cens))
+dat <- data.frame(time = t_obs, status = as.integer(!cured & t_u <= cens),
+                  group = grp)
+fit <- fit_bd_cure(survival::Surv(time, status) ~ 1, ~ group,
+                   data = dat, type = "mixture", n_starts = 3)
+summary(fit)
+}
+
+}
+\references{
+Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The Development and
+Characterization of a New Four-Parameter Lifetime Distribution* (Ph.D.
+thesis). Allama Iqbal Open University, Islamabad, Pakistan.
 }

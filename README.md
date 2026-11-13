@@ -12,9 +12,11 @@
 
 The **BetaDanish** package implements the four-parameter Beta-Danish
 distribution and its three-parameter Exponentiated Danish (ED) submodel for
-survival, reliability and lifetime-data analysis. The distribution was
-introduced by Ahmad and Danish (2025) and accommodates monotonic, unimodal
-and bathtub-shaped hazards within a single parametric family.
+survival, reliability and lifetime-data analysis. The distribution is
+developed in the doctoral thesis of Ahmad (2026) and accommodates monotonic,
+unimodal and bathtub-shaped hazards within a single parametric family. From
+version 1.0.0 the estimation, goodness-of-fit, interval and Bayesian routines
+follow the final analysis code of that thesis.
 
 Its upper tail is regularly varying with index `-b`, so the survival function
 decays polynomially rather than exponentially. That is what makes the family
@@ -27,19 +29,32 @@ generating function does not exist at all.
 `dbetadanish()`, `pbetadanish()`, `qbetadanish()`, `sbetadanish()`,
 `hbetadanish()` and `rbetadanish()`, with `ded()`, `ped()`, `qed()`, `sed()`,
 `hed()` and `red()` naming the ED submodel directly. All are evaluated so as
-to hold accuracy far into the tail: the quantile function uses the beta mirror
-identity rather than subtracting a near-one probability from one, and the
-survival function is never formed by cancellation.
+to hold accuracy far into both tails: the quantile function uses the beta
+mirror identity rather than subtracting a near-one probability from one, the
+survival function is never formed by cancellation, and the distribution
+function stays finite on the log scale where the baseline underflows.
 
 ### Estimation and inference
 
-- Maximum likelihood for complete and right-censored samples
+- Maximum likelihood for complete and right-censored samples by the
+  thesis's **two-stage estimator**: the ED submodel first, then the
+  four-parameter model from starts along the `(a, c)` ridge through it, so
+  the four-parameter log-likelihood can never fall below the submodel's
+- Parameters confined to the thesis box `[1e-4, 1e4]`; a fit on its edge is
+  reported as a **supremum**, with no AIC, BIC, standard errors or
+  goodness-of-fit statistics
+- **Goodness of fit** by Kolmogorov-Smirnov, Cramer-von Mises and
+  Anderson-Darling statistics, computed with the Kaplan-Meier estimator on
+  the probability-integral-transform scale so that complete and censored
+  samples are measured on one scale
 - A **grouped likelihood** for times recorded on a coarse grid, where treating
   a rounded value as exact would understate every standard error
 - **Ridge-penalized** fitting for the weakly identified regime
-- **Bayesian** sampling by random-walk Metropolis
-- Log-scale Wald and **profile-likelihood** intervals; an unbounded profile is
-  reported as such rather than truncated at the grid edge
+- **Bayesian** sampling by adaptive multi-chain Metropolis, with R-hat and
+  effective-sample-size convergence checks
+- Log-scale Wald and **profile-likelihood** intervals; the profile grid is
+  extended until it closes, and an unbounded profile is reported as such
+  rather than truncated at the grid edge
 - `bd_identified_coef()` reports the fit through the identified composite
   `ac`, which is what the data determine when `a` and `c` cannot be separated
 - Diagnostics that warn when a fit lands on the `b = 1` ridge, when the
@@ -52,12 +67,13 @@ Shannon (closed form), Renyi and Tsallis entropies; mean residual life and
 mean inactivity time; mean deviations; Lorenz and Bonferroni curves;
 probability weighted moments; order-statistic densities, distributions and
 moments; stress-strength reliability; hazard-shape classification via
-Glaser's criterion; and the tail index.
+Glaser's criterion; the tail index; and the Kullback-Leibler separation of a
+Beta-Danish distribution from its closest ED submodel.
 
 ### Regression
 
-Accelerated failure time models, mixture and promotion-time cure models, and
-competing risks with Aalen-Johansen comparison and Gray's test, each with
+Accelerated failure time models, mixture and promotion-time cure models with
+an ED or a four-parameter Beta-Danish kernel, and competing risks with Aalen-Johansen comparison and Gray's test, each with
 Cox-Snell residual diagnostics.
 
 ### Working from a file
@@ -79,7 +95,7 @@ devtools::install_github("bilal-aiou/BetaDanish")
 Optional packages used by advanced modules (declared in `Suggests`):
 
 ```r
-install.packages(c("MCMCpack", "coda", "cmprsk", "flexsurv", "MASS"))
+install.packages(c("coda", "MCMCpack", "cmprsk", "flexsurv", "readxl"))
 ```
 
 ## The Beta-Danish Distribution
@@ -187,8 +203,9 @@ plot(fit_aft)   # Cox-Snell residual diagnostic
 
 ### Cure models
 
-Both **mixture** and **promotion-time** cure models on the
-Exponentiated Danish kernel:
+Both **mixture** and **promotion-time** cure models, on the
+Exponentiated Danish kernel by default or on the four-parameter
+Beta-Danish kernel with `submodel = FALSE`:
 
 ```r
 fit_cure <- fit_bd_cure(
@@ -218,6 +235,7 @@ reported for cause equality.
 |---|---|
 | `bd_entropy_shannon()` | Shannon (differential) entropy |
 | `bd_order_stat_pdf()` | r-th order statistic density |
+| `bd_kl_submodel()` | Kullback-Leibler separation from the ED submodel |
 
 ## Working from a CSV File
 
@@ -270,16 +288,17 @@ whole run.
 
 ## Vignettes
 
-The package ships with five comprehensive tutorials:
+The package ships with six tutorials:
 
 1. **Introduction to BetaDanish** — Overview, parameterization,
    first-time-user walkthrough
-2. **Brain Cancer Case Study** — Complete real-world analysis
+2. **A Case Study** — A complete real-world analysis
 3. **Bayesian Estimation** — Posterior inference with
    `bayes_betadanish()`
 4. **Competing Risks** — Joint cause-specific modelling with CIF
    comparison
 5. **Cure Models** — Mixture and promotion-time formulations
+6. **Analysing Your Own Data from a CSV File** — The file-driven workflow
 
 Browse them with:
 
@@ -289,21 +308,9 @@ browseVignettes("BetaDanish")
 
 ## Citation
 
-If you use BetaDanish in published work, please cite the underlying
-article. The package implements the three-parameter Exponentiated
-Danish (ED) submodel introduced in the published article, as well as
-the four-parameter Beta-Danish distribution developed in the
-accompanying doctoral thesis.
-
-**Article (introduces the three-parameter ED submodel):**
-
-> Ahmad, B., & Danish, M. Y. (2025). Development and characterization
-> of a flexible three-parameter lifetime distribution: theoretical
-> properties and real-world applications.
-> *Journal of Applied Mathematics, Statistics and Informatics*, 21(1).
-> <https://doi.org/10.2478/jamsi-2025-0010>
-
-**Thesis (introduces the four-parameter Beta-Danish extension):**
+If you use BetaDanish in published work, please cite the doctoral thesis
+in which the Beta-Danish distribution and its Exponentiated Danish
+submodel are developed:
 
 > Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The
 > Development and Characterization of a New Four-Parameter Lifetime
@@ -316,17 +323,11 @@ A BibTeX entry is available via:
 citation("BetaDanish")
 ```
 
-
 ## References
 
-Ahmad, B., & Danish, M. Y. (2025). The Beta-Danish distribution for
-lifetime data analysis. *Journal of Applied Mathematics, Statistics
-and Informatics*, 21(1).
-<https://doi.org/10.2478/jamsi-2025-0010>
-
-Eugene, N., Lee, C., & Famoye, F. (2002). Beta-normal distribution
-and its applications. *Communications in Statistics — Theory and
-Methods*, 31(4), 497–512.
+Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The Development
+and Characterization of a New Four-Parameter Lifetime Distribution*
+(Ph.D. thesis). Allama Iqbal Open University, Islamabad, Pakistan.
 
 ## Getting Help
 

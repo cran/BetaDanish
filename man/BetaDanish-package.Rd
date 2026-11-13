@@ -5,7 +5,7 @@
 \alias{BetaDanish-package}
 \title{BetaDanish: The Beta-Danish Distribution for Lifetime Data Analysis}
 \description{
-Implements the four-parameter Beta-Danish distribution and its three-parameter Exponentiated Danish submodel for survival, reliability and lifetime data analysis, following Ahmad and Danish (2025) \doi{10.2478/jamsi-2025-0010}. Density, distribution, quantile, survival, hazard and random generation functions are evaluated so as to retain accuracy in the heavy upper tail, where the survival function is regularly varying. Estimation covers maximum likelihood for complete and right-censored samples, ridge-penalized fitting for weakly identified regimes, a grouped likelihood for times recorded on a coarse grid, and Bayesian sampling. Inference provides log-scale Wald and profile likelihood intervals, together with a reparameterization in terms of the identified composite of the two shape parameters. Structural properties include raw, incomplete and conditional moments with their existence conditions, Shannon, Renyi and Tsallis entropies, mean residual life, mean deviations, Lorenz and Bonferroni curves, probability weighted moments, order statistics, stress-strength reliability, hazard shape classification and the tail index. Regression modules cover accelerated failure time models, mixture and promotion-time cure models, and competing risks with Aalen-Johansen comparison and Gray's test. Analyses can be run directly from a delimited text file or spreadsheet.
+Implements the four-parameter Beta-Danish distribution and its three-parameter Exponentiated Danish submodel for survival, reliability and lifetime data analysis, following Ahmad (2026), "Modeling Diverse Survival Patterns: The Development and Characterization of a New Four-Parameter Lifetime Distribution", PhD thesis, Allama Iqbal Open University. Density, distribution, quantile, survival, hazard and random generation functions are evaluated so as to retain accuracy in both tails; the upper tail is heavy, with a regularly varying survival function. Estimation covers maximum likelihood for complete and right-censored samples by a two-stage multi-start search that guarantees nesting of the submodel, with fits on the edge of the parameter space reported as such, ridge-penalized fitting for weakly identified regimes, a grouped likelihood for times recorded on a coarse grid, and Bayesian sampling by adaptive multi-chain Metropolis with convergence checks. Goodness of fit uses Kolmogorov-Smirnov, Cramer-von Mises and Anderson-Darling statistics computed on one scale for complete and censored samples. Inference provides log-scale Wald and profile likelihood intervals, together with a reparameterization in terms of the identified composite of the two shape parameters. Structural properties include raw, incomplete and conditional moments with their existence conditions, Shannon, Renyi and Tsallis entropies, mean residual life, mean deviations, Lorenz and Bonferroni curves, probability weighted moments, order statistics, stress-strength reliability, hazard shape classification, the tail index and the Kullback-Leibler separation from the submodel. Regression modules cover accelerated failure time models, mixture and promotion-time cure models with three- or four-parameter kernels, and competing risks with Aalen-Johansen comparison and Gray's test. Analyses can be run directly from a delimited text file or spreadsheet.
 }
 \details{
 The `BetaDanish` package provides a comprehensive suite of tools for survival
@@ -15,16 +15,13 @@ and hazard), robust Maximum Likelihood Estimation (MLE) for both complete and
 right-censored data, and advanced modeling capabilities including Accelerated
 Failure Time (AFT) regression, cure-rate models, and competing risks analysis.
 
-The three-parameter Exponentiated Danish (ED) submodel is introduced in the
-published article (Ahmad & Danish, 2025). The full four-parameter Beta-Danish
-distribution is developed in the accompanying doctoral thesis (Ahmad, 2026).
+The four-parameter Beta-Danish distribution and its three-parameter
+Exponentiated Danish (ED) submodel, \eqn{a = 1}, are developed in the
+doctoral thesis on which the package is based (Ahmad, 2026). From version
+1.0.0 the estimation, goodness-of-fit, interval and Bayesian routines follow
+the final analysis code of that thesis.
 }
 \references{
-Ahmad, B., & Danish, M. Y. (2025). Development and characterization of a
-flexible three-parameter lifetime distribution: theoretical properties and
-real-world applications. *Journal of Applied Mathematics, Statistics and
-Informatics*, 21(1). \doi{10.2478/jamsi-2025-0010}
-
 Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The Development and
 Characterization of a New Four-Parameter Lifetime Distribution* (Ph.D.
 thesis). Allama Iqbal Open University, Islamabad, Pakistan. Supervised by

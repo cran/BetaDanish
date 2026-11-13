@@ -14,20 +14,30 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.width = 7,
-  fig.height = 4.5,
+  fig.height = 6,
   warning = FALSE,
   message = FALSE
 )
-have_mcmc <- requireNamespace("MCMCpack", quietly = TRUE) &&
-             requireNamespace("coda",     quietly = TRUE)
-knitr::opts_chunk$set(eval = have_mcmc)
 ```
 
 ## 1. Overview
 
 This vignette walks through Bayesian estimation of the three-parameter
-Exponentiated Danish (ED) submodel and the full four-parameter
-Beta-Danish distribution using `bayes_betadanish()`.
+Exponentiated Danish (ED) submodel with `bayes_betadanish()`. The same call
+with `submodel = FALSE` fits the full four-parameter Beta-Danish
+distribution.
+
+From version 1.0.0 the default sampler is the multi-chain adaptive
+Metropolis algorithm used in the thesis on which the package is based. It is
+written in base R, so no additional package is needed. Each chain adapts the
+scale and then the shape of its proposal during the burn-in and stops
+adapting before any draw is retained. The fit then reports the potential
+scale reduction factor (R-hat) and the effective sample size of every
+parameter, and flags the result as converged only when every R-hat is at
+most 1.05 and every effective sample size is at least 400.
+
+The single-chain sampler of earlier versions is still available as
+`method = "metrop1R"`, which requires the MCMCpack and coda packages.
 
 ## 2. ED submodel on bladder cancer remission times
 
@@ -38,27 +48,35 @@ fit_bayes <- bayes_betadanish(
   time     = remission$time,
   status   = remission$status,
   submodel = TRUE,
-  burnin   = 2000, mcmc = 5000,
-  tune     = 0.5,
+  burnin   = 2000, mcmc = 4000,
+  n_chains = 4,
   seed     = 1
 )
 print(fit_bayes)
 ```
 
+The chains start at the maximum-likelihood estimate (the first chain) and at
+random perturbations of it (the others), so agreement between them is
+evidence that the sampler has forgotten where it started.
+
 ## 3. Posterior diagnostics
 
 ```{r}
-draws <- fit_bayes$draws
-op <- par(mfrow = c(3, 1), mar = c(3, 4, 2, 1))
-coda::traceplot(draws)
-par(op)
+fit_bayes$diagnostics
+fit_bayes$converged
+plot(fit_bayes)
 ```
+
+Each chain is drawn in its own colour in the trace panels. Chains that
+overlap and show no drift are what a converged sampler looks like; the
+density panels pool all chains and mark the 95% highest posterior density
+interval.
 
 ## 4. Posterior survival vs Kaplan-Meier
 
-```{r}
-post_mean <- summary(draws)$statistics[, "Mean"]
-b <- post_mean["b"]; c <- post_mean["c"]; k <- post_mean["k"]
+```{r, fig.height = 4.5}
+post_mean <- setNames(fit_bayes$summary$mean, fit_bayes$summary$parameter)
+b <- post_mean[["b"]]; c <- post_mean[["c"]]; k <- post_mean[["k"]]
 km <- survival::survfit(survival::Surv(time, status) ~ 1, data = remission)
 plot(km, conf.int = FALSE, xlab = "Time (months)",
      ylab = "Survival probability",
@@ -80,6 +98,22 @@ fit_mle <- fit_betadanish(survival::Surv(time, status) ~ 1,
                           n_starts = 3)
 cbind(
   MLE  = round(coef(fit_mle), 4),
-  Bayes_post_mean = round(post_mean, 4)
+  Bayes_post_mean = round(post_mean[names(coef(fit_mle))], 4)
 )
+```
+
+## 6. The four-parameter model
+
+For the full model the posterior of the product `a * c` is usually far better
+determined than those of `a` and `c` separately, because near the lower tail
+the two enter the density almost only through their product. The summary
+therefore carries an extra row, `a_times_c`. The four-parameter posterior
+needs longer chains than the ED one; check `converged` before using it.
+
+```{r, eval = FALSE}
+fit_bd <- bayes_betadanish(remission$time, remission$status,
+                           submodel = FALSE, burnin = 20000, mcmc = 40000,
+                           seed = 1)
+fit_bd$summary
+fit_bd$converged
 ```

@@ -1,30 +1,6 @@
 citHeader("To cite the BetaDanish package in publications, use:")
 
 bibentry(
-  bibtype = "Article",
-  title   = paste("Development and characterization of a flexible",
-                  "three-parameter lifetime distribution: theoretical",
-                  "properties and real-world applications"),
-  author  = c(
-    person("Bilal", "Ahmad"),
-    person("Muhammad Yameen", "Danish")
-  ),
-  journal = "Journal of Applied Mathematics, Statistics and Informatics",
-  year    = "2025",
-  volume  = "21",
-  number  = "1",
-  doi     = "10.2478/jamsi-2025-0010",
-  textVersion = paste(
-    "Ahmad, B., & Danish, M. Y. (2025).",
-    "Development and characterization of a flexible three-parameter",
-    "lifetime distribution: theoretical properties and real-world",
-    "applications.",
-    "Journal of Applied Mathematics, Statistics and Informatics, 21(1).",
-    "doi:10.2478/jamsi-2025-0010"
-  )
-)
-
-bibentry(
   bibtype = "PhdThesis",
   title   = paste("Modeling Diverse Survival Patterns:",
                   "The Development and Characterization of a",
@@ -39,27 +15,5 @@ bibentry(
     "Characterization of a New Four-Parameter Lifetime Distribution",
     "(Ph.D. thesis).",
     "Allama Iqbal Open University, Islamabad, Pakistan."
-  )
-)
-
-bibentry(
-  bibtype = "Manual",
-  title   = "BetaDanish: The Beta-Danish Distribution for Lifetime Data Analysis",
-  author  = c(
-    person("Bilal", "Ahmad", email = "bilalahmad.imcbh9@gmail.com",
-           role = c("aut", "cre")),
-    person("Muhammad Yameen", "Danish", email = "yameen.danish@aiou.edu.pk",
-           role = "aut")
-  ),
-  year    = format(Sys.Date(), "%Y"),
-  note    = paste("R package version", meta$Version),
-  url     = "https://bilal-aiou.github.io/BetaDanish/",
-  textVersion = paste(
-    "Ahmad, B., & Danish, M. Y. (",
-    format(Sys.Date(), "%Y"),
-    "). BetaDanish: The Beta-Danish Distribution for Lifetime Data",
-    "Analysis. R package version ", meta$Version, ".",
-    "https://bilal-aiou.github.io/BetaDanish/",
-    sep = ""
   )
 )

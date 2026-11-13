@@ -3,13 +3,10 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.width = 7,
-  fig.height = 4.5,
+  fig.height = 6,
   warning = FALSE,
   message = FALSE
 )
-have_mcmc <- requireNamespace("MCMCpack", quietly = TRUE) &&
-             requireNamespace("coda",     quietly = TRUE)
-knitr::opts_chunk$set(eval = have_mcmc)
 
 ## -----------------------------------------------------------------------------
 library(BetaDanish)
@@ -18,21 +15,20 @@ fit_bayes <- bayes_betadanish(
   time     = remission$time,
   status   = remission$status,
   submodel = TRUE,
-  burnin   = 2000, mcmc = 5000,
-  tune     = 0.5,
+  burnin   = 2000, mcmc = 4000,
+  n_chains = 4,
   seed     = 1
 )
 print(fit_bayes)
 
 ## -----------------------------------------------------------------------------
-draws <- fit_bayes$draws
-op <- par(mfrow = c(3, 1), mar = c(3, 4, 2, 1))
-coda::traceplot(draws)
-par(op)
+fit_bayes$diagnostics
+fit_bayes$converged
+plot(fit_bayes)
 
-## -----------------------------------------------------------------------------
-post_mean <- summary(draws)$statistics[, "Mean"]
-b <- post_mean["b"]; c <- post_mean["c"]; k <- post_mean["k"]
+## ----fig.height = 4.5---------------------------------------------------------
+post_mean <- setNames(fit_bayes$summary$mean, fit_bayes$summary$parameter)
+b <- post_mean[["b"]]; c <- post_mean[["c"]]; k <- post_mean[["k"]]
 km <- survival::survfit(survival::Surv(time, status) ~ 1, data = remission)
 plot(km, conf.int = FALSE, xlab = "Time (months)",
      ylab = "Survival probability",
@@ -51,6 +47,13 @@ fit_mle <- fit_betadanish(survival::Surv(time, status) ~ 1,
                           n_starts = 3)
 cbind(
   MLE  = round(coef(fit_mle), 4),
-  Bayes_post_mean = round(post_mean, 4)
+  Bayes_post_mean = round(post_mean[names(coef(fit_mle))], 4)
 )
+
+## ----eval = FALSE-------------------------------------------------------------
+# fit_bd <- bayes_betadanish(remission$time, remission$status,
+#                            submodel = FALSE, burnin = 20000, mcmc = 40000,
+#                            seed = 1)
+# fit_bd$summary
+# fit_bd$converged
 

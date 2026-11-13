@@ -36,21 +36,20 @@ Trace and posterior density plots for each parameter of a
 Read the traces first. A well-mixed chain looks like noise around a stable
 level, with no drift and no long excursions. Visible trend means the burn-in
 was too short; a chain that sticks at one value for many iterations means
-the proposal is too wide and almost every move is being rejected, which is
-worth fixing with `tune` before interpreting anything.
+almost every move is being rejected. For a fit from the default adaptive
+sampler each chain is drawn in its own colour, so chains that disagree
+about the level are visible directly; the density panel pools all chains.
 
 The graphical parameters are restored on exit, so the function leaves the
 device as it found it.
 }
 \examples{
 \donttest{
-if (requireNamespace("MCMCpack", quietly = TRUE) &&
-    requireNamespace("coda", quietly = TRUE)) {
-  dat <- simulate_bd_data(80, a = 1, b = 3, c = 2, k = 0.5, seed = 6)
-  bfit <- bayes_betadanish(dat$time, dat$status, submodel = TRUE,
-                           burnin = 200, mcmc = 800, seed = 1)
-  plot(bfit)
-}
+dat <- simulate_bd_data(80, a = 1, b = 3, c = 2, k = 0.5, seed = 6)
+bfit <- suppressWarnings(
+  bayes_betadanish(dat$time, dat$status, submodel = TRUE,
+                   burnin = 500, mcmc = 1000, seed = 1))
+plot(bfit)
 }
 }
 \seealso{

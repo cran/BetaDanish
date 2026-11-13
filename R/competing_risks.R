@@ -122,6 +122,29 @@ fit_bd_competing <- function(time, cause, covariates = NULL, data = NULL,
                        submodel = submodel, n_starts = 2,
                        check_identifiability = FALSE)),
       error = function(e) NULL)
+    ## A cause-wise fit on the edge of the parameter box, or with a shape
+    ## above the joint model's admissibility limit of 500, lies on the
+    ## degenerate ridge and would seed every joint start there. Use the ED
+    ## submodel of that cause instead (a = 1), and failing that a fixed start.
+    usable <- function(f) {
+      if (is.null(f) || isTRUE(f$at_boundary)) return(FALSE)
+      cf <- f$coefficients
+      sh <- cf[intersect(names(cf), c("a", "b", "c"))]
+      all(is.finite(cf)) && all(cf > 0) && all(sh <= 500)
+    }
+    if (!usable(fit_j) && !submodel) {
+      fit_ed <- tryCatch(
+        suppressWarnings(
+          fit_betadanish(survival::Surv(time, status) ~ 1, data = dat_j,
+                         submodel = TRUE, n_starts = 2,
+                         check_identifiability = FALSE)),
+        error = function(e) NULL)
+      fit_j <- if (usable(fit_ed)) {
+        list(coefficients = c(a = 1, fit_ed$coefficients))
+      } else NULL
+    } else if (!usable(fit_j)) {
+      fit_j <- NULL
+    }
     base <- if (is.null(fit_j)) {
       med <- stats::median(time)
       if (submodel) log(c(2, 1.5, 1 / med)) else log(c(1, 2, 1.5, 1 / med))

@@ -192,8 +192,9 @@ bd_profile_plot <- function(x, col = "steelblue", lwd = 2,
 #' Read the traces first. A well-mixed chain looks like noise around a stable
 #' level, with no drift and no long excursions. Visible trend means the burn-in
 #' was too short; a chain that sticks at one value for many iterations means
-#' the proposal is too wide and almost every move is being rejected, which is
-#' worth fixing with `tune` before interpreting anything.
+#' almost every move is being rejected. For a fit from the default adaptive
+#' sampler each chain is drawn in its own colour, so chains that disagree
+#' about the level are visible directly; the density panel pools all chains.
 #'
 #' The graphical parameters are restored on exit, so the function leaves the
 #' device as it found it.
@@ -204,13 +205,11 @@ bd_profile_plot <- function(x, col = "steelblue", lwd = 2,
 #'
 #' @examples
 #' \donttest{
-#' if (requireNamespace("MCMCpack", quietly = TRUE) &&
-#'     requireNamespace("coda", quietly = TRUE)) {
-#'   dat <- simulate_bd_data(80, a = 1, b = 3, c = 2, k = 0.5, seed = 6)
-#'   bfit <- bayes_betadanish(dat$time, dat$status, submodel = TRUE,
-#'                            burnin = 200, mcmc = 800, seed = 1)
-#'   plot(bfit)
-#' }
+#' dat <- simulate_bd_data(80, a = 1, b = 3, c = 2, k = 0.5, seed = 6)
+#' bfit <- suppressWarnings(
+#'   bayes_betadanish(dat$time, dat$status, submodel = TRUE,
+#'                    burnin = 500, mcmc = 1000, seed = 1))
+#' plot(bfit)
 #' }
 plot.bd_bayes <- function(x, which = NULL, type = c("both", "trace", "density"),
                           col = "steelblue", ...) {
@@ -237,12 +236,27 @@ plot.bd_bayes <- function(x, which = NULL, type = c("both", "trace", "density"),
                 mar = c(4, 4, 2, 1))
 
   it <- seq_len(nrow(dr))
+  ch <- x$chains
+  multi <- is.list(ch) && length(ch) >= 1L &&
+    all(vapply(ch, function(M) is.matrix(M) && all(nm %in% colnames(M)),
+               logical(1)))
+  ch_col <- rep(c(col, "firebrick", "darkgreen", "darkorange", "purple",
+                  "grey30"), length.out = if (multi) length(ch) else 1L)
   for (p in nm) {
     v <- dr[, p]
     if (type %in% c("both", "trace")) {
-      plot(it, v, type = "l", col = col,
-                     main = paste("Trace:", p),
-                     xlab = "iteration", ylab = p, ...)
+      if (multi) {
+        rng <- range(unlist(lapply(ch, function(M) M[, p])), finite = TRUE)
+        plot(seq_len(nrow(ch[[1L]])), ch[[1L]][, p], type = "l",
+             col = ch_col[1L], ylim = rng, main = paste("Trace:", p),
+             xlab = "iteration (after burn-in)", ylab = p, ...)
+        for (m in seq_along(ch)[-1L])
+          graphics::lines(seq_len(nrow(ch[[m]])), ch[[m]][, p], col = ch_col[m])
+      } else {
+        plot(it, v, type = "l", col = col,
+                       main = paste("Trace:", p),
+                       xlab = "iteration", ylab = p, ...)
+      }
       graphics::abline(h = mean(v), col = "red", lty = 2)
     }
     if (type %in% c("both", "density")) {

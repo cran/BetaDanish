@@ -40,6 +40,12 @@
 #' * The survival function uses the beta mirror identity
 #'   \eqn{1 - I_{y}(a,b) = I_{1-y}(b,a)}, so no probability near one is ever
 #'   subtracted from one.
+#' * Where \eqn{G(t)} underflows (\eqn{\log G < -700}), the distribution
+#'   function uses the leading term of the convergent expansion
+#'   \eqn{I_u(a,b) = u^{a} / \{a B(a,b)\} \{1 + O(u)\}}, evaluated on the log
+#'   scale. The neglected term is below \eqn{10^{-300}} there, so the lower
+#'   tail and its logarithm stay finite and exact in double precision instead
+#'   of collapsing to \eqn{0} and \eqn{-\infty}.
 #' * `qbetadanish` obtains \eqn{1 - u} directly via
 #'   \eqn{1 - q\beta(p; a, b) = q\beta(p; b, a)} with the tail flag reversed,
 #'   so `1 - p` is never formed.
@@ -58,10 +64,9 @@
 #' deviates. Length is the maximum of the lengths of the numeric arguments.
 #'
 #' @references
-#' Ahmad, B., & Danish, M. Y. (2025). Development and characterization of a
-#' flexible three-parameter lifetime distribution: theoretical properties and
-#' real-world applications. *Journal of Applied Mathematics, Statistics and
-#' Informatics*, 21(1). \doi{10.2478/jamsi-2025-0010}
+#' Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The Development and
+#' Characterization of a New Four-Parameter Lifetime Distribution* (Ph.D.
+#' thesis). Allama Iqbal Open University, Islamabad, Pakistan.
 #'
 #' @examples
 #' dbetadanish(x = 2, a = 1.5, b = 2, c = 3, k = 0.5)
@@ -154,14 +159,39 @@ pbetadanish <- function(q, a, b, c, k, lower.tail = TRUE, log.p = FALSE) {
     xx <- p$x[ok]; aa <- p$a[ok]; bb <- p$b[ok]
     cc <- p$c[ok]; kk <- p$k[ok]
     kt <- kk * xx
-    out[ok] <- if (lower.tail) {
-      stats::pbeta(exp(.bd_logG(kt, cc)), aa, bb,
-                   lower.tail = TRUE, log.p = log.p)
-    } else {
-      ## Beta mirror: S(t) = 1 - I_G(a,b) = I_{1-G}(b,a). No cancellation.
-      stats::pbeta(-expm1(.bd_logG(kt, cc)), bb, aa,
-                   lower.tail = TRUE, log.p = log.p)
+    logG <- .bd_logG(kt, cc)
+    ## An undefined log G (for instance c and k both infinite, as an optimiser
+    ## can propose) gives NaN, exactly as the incomplete beta itself would;
+    ## it must never stop the computation.
+    res  <- rep(NaN, length(logG))
+
+    ## Representable G: the incomplete beta is evaluated directly.
+    rep_ <- !is.na(logG) & logG > -700
+    und  <- !is.na(logG) & !rep_
+    if (any(rep_)) {
+      res[rep_] <- if (lower.tail) {
+        stats::pbeta(exp(logG[rep_]), aa[rep_], bb[rep_],
+                     lower.tail = TRUE, log.p = log.p)
+      } else {
+        ## Beta mirror: S(t) = 1 - I_G(a,b) = I_{1-G}(b,a). No cancellation.
+        stats::pbeta(-expm1(logG[rep_]), bb[rep_], aa[rep_],
+                     lower.tail = TRUE, log.p = log.p)
+      }
     }
+
+    ## Underflowing G: leading term of I_u(a,b) = u^a / (a B(a,b)) [1 + O(u)],
+    ## formed on the log scale. exp(logG) would be exactly 0 here, which made
+    ## F = 0 and log F = -Inf at every such time.
+    if (any(und)) {
+      a_ <- aa[und]; b_ <- bb[und]
+      lF <- pmin(a_ * logG[und] - log(a_) - lbeta(a_, b_), 0)
+      res[und] <- if (lower.tail) {
+        if (log.p) lF else exp(lF)
+      } else {
+        if (log.p) log1p(-exp(lF)) else -expm1(lF)
+      }
+    }
+    out[ok] <- res
   }
   if (log.p) {
     seeded <- !ok & !bad & !is.na(p$x)
@@ -173,6 +203,10 @@ pbetadanish <- function(q, a, b, c, k, lower.tail = TRUE, log.p = FALSE) {
 #' @rdname BetaDanish
 #' @export
 qbetadanish <- function(p, a, b, c, k, lower.tail = TRUE, log.p = FALSE) {
+  if (!is.logical(lower.tail) || length(lower.tail) != 1L || is.na(lower.tail) ||
+      !is.logical(log.p) || length(log.p) != 1L || is.na(log.p))
+    stop("'lower.tail' and 'log.p' must each be a single TRUE or FALSE.",
+         call. = FALSE)
   cf <- .bd_conform(p, a, b, c, k)
   if (is.null(cf)) return(numeric(0))
   pp <- cf$x

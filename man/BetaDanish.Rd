@@ -79,6 +79,12 @@ this family is distinctive and where naive implementations fail:
 * The survival function uses the beta mirror identity
   \eqn{1 - I_{y}(a,b) = I_{1-y}(b,a)}, so no probability near one is ever
   subtracted from one.
+* Where \eqn{G(t)} underflows (\eqn{\log G < -700}), the distribution
+  function uses the leading term of the convergent expansion
+  \eqn{I_u(a,b) = u^{a} / \{a B(a,b)\} \{1 + O(u)\}}, evaluated on the log
+  scale. The neglected term is below \eqn{10^{-300}} there, so the lower
+  tail and its logarithm stay finite and exact in double precision instead
+  of collapsing to \eqn{0} and \eqn{-\infty}.
 * `qbetadanish` obtains \eqn{1 - u} directly via
   \eqn{1 - q\beta(p; a, b) = q\beta(p; b, a)} with the tail flag reversed,
   so `1 - p` is never formed.
@@ -106,8 +112,7 @@ round(log(sbetadanish(c(1e10, 1e12), 1.5, 3, 2, 1)), 4)
 
 }
 \references{
-Ahmad, B., & Danish, M. Y. (2025). Development and characterization of a
-flexible three-parameter lifetime distribution: theoretical properties and
-real-world applications. *Journal of Applied Mathematics, Statistics and
-Informatics*, 21(1). \doi{10.2478/jamsi-2025-0010}
+Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The Development and
+Characterization of a New Four-Parameter Lifetime Distribution* (Ph.D.
+thesis). Allama Iqbal Open University, Islamabad, Pakistan.
 }

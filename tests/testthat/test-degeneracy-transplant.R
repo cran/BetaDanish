@@ -20,9 +20,16 @@ test_that("the four-parameter fit never runs away on the transplant data", {
     expect_lt(fit$logLik / n, 5, label = paste("seed", s, "loglik per obs"))
     expect_gt(fit$logLik, -1e4, label = paste("seed", s, "loglik floor"))
 
+    ## From 1.0.0 the shapes are confined to the thesis box [1e-4, 1e4]; a fit
+    ## that reaches its edge is flagged rather than reported as a maximum.
     shapes <- fit$coefficients[intersect(names(fit$coefficients),
                                          c("a", "b", "c"))]
-    expect_true(all(shapes < 500), label = paste("seed", s, "shapes bounded"))
+    expect_true(all(shapes <= 1e4 * (1 + 1e-8)),
+                label = paste("seed", s, "shapes bounded"))
+    expect_true(is.logical(fit$at_boundary),
+                label = paste("seed", s, "boundary flag present"))
+    if (isTRUE(fit$at_boundary))
+      expect_true(is.na(fit$AIC), label = paste("seed", s, "no AIC on the edge"))
     expect_true(all(is.finite(fit$coefficients)),
                 label = paste("seed", s, "finite estimates"))
   }

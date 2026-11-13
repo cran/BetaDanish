@@ -10,7 +10,9 @@ print.betadanish <- function(x, ...) {
   print(x$call)
   cat("\nBeta-Danish Distribution Fit\n")
   cat("Model:", if(x$submodel) "3-Parameter Submodel (a=1)" else "Full 4-Parameter Model", "\n")
-  cat("Log-Likelihood:", round(x$logLik, 4), "\n\n")
+  cat("Log-Likelihood:", round(x$logLik, 4),
+      if (isTRUE(x$at_boundary)) "(supremum: fit on the edge of the parameter box)" else "",
+      "\n\n")
   cat("Coefficients:\n")
   print(round(x$coefficients, 4))
   cat("\n")
@@ -26,7 +28,9 @@ print.betadanish <- function(x, ...) {
 #' @export
 summary.betadanish <- function(object, ...) {
   est <- object$coefficients
-  se <- sqrt(pmax(diag(object$vcov), 0))
+  ## A zero or undefined standard error comes from a degenerate information
+  ## matrix and is reported as NA, never as 0.
+  se <- .bd_se_from_vcov(object$vcov, names(est))
   z_val <- est / se
   p_val <- 2 * stats::pnorm(abs(z_val), lower.tail = FALSE)
 
@@ -46,8 +50,9 @@ summary.betadanish <- function(object, ...) {
 
   k <- length(est)
   n <- length(object$data$time)
-  aic <- 2 * k - 2 * object$logLik
-  bic <- k * log(n) - 2 * object$logLik
+  boundary <- isTRUE(object$at_boundary)
+  aic <- if (boundary) NA_real_ else 2 * k - 2 * object$logLik
+  bic <- if (boundary) NA_real_ else k * log(n) - 2 * object$logLik
 
   res <- list(
     call = object$call,
@@ -56,7 +61,9 @@ summary.betadanish <- function(object, ...) {
     logLik = object$logLik,
     aic = aic,
     bic = bic,
-    convergence = object$convergence
+    convergence = object$convergence,
+    at_boundary = boundary,
+    flag = if (is.null(object$flag)) "ok" else object$flag
   )
 
   class(res) <- "summary.betadanish"
@@ -79,10 +86,17 @@ print.summary.betadanish <- function(x, ...) {
   stats::printCoefmat(x$coefficients, P.values = TRUE, has.Pvalue = TRUE)
 
   cat("---\n")
-  cat("Log-Likelihood:", round(x$logLik, 4), "\n")
-  cat("AIC:", round(x$aic, 4), " | BIC:", round(x$bic, 4), "\n")
+  if (isTRUE(x$at_boundary)) {
+    cat("Log-Likelihood (supremum):", round(x$logLik, 4), "\n")
+    cat("AIC: NA | BIC: NA  (the fit is on the edge of the parameter box)\n")
+  } else {
+    cat("Log-Likelihood:", round(x$logLik, 4), "\n")
+    cat("AIC:", round(x$aic, 4), " | BIC:", round(x$bic, 4), "\n")
+  }
+  if (!is.null(x$flag) && !identical(x$flag, "ok"))
+    cat("Flag:", x$flag, "\n")
 
-  if (x$convergence != 0) {
+  if (isTRUE(x$convergence != 0)) {
     cat("\nWarning: Optimization may not have converged (Code:", x$convergence, ")\n")
   }
   invisible(x)

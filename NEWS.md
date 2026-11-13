@@ -1,3 +1,133 @@
+# BetaDanish 1.0.0
+
+This release brings the package into line with the final analysis code of
+the doctoral thesis on which it is based (Ahmad, 2026). Where a routine of
+the package and of the thesis estimate the same quantity, they now use the
+same method.
+
+## Estimation
+
+* `fit_betadanish()` uses the two-stage estimator of the thesis. Stage 1
+  fits the Exponentiated Danish (ED) submodel from four starts with
+  `k = 1/median(t)`; Stage 2 fits the four-parameter model from seven starts
+  along the `(a, c)` ridge through the Stage-1 optimum,
+  `(f, b_ED, c_ED / f, k_ED)` for `f` in `{1/30, 1/8, 1/3, 1, 3, 8, 30}`.
+  The start `f = 1` is the ED optimum, so the four-parameter log-likelihood
+  can never fall below the ED one. The deterministic grid and random starts
+  of 0.3.0 are kept as further candidates, drawn in the same order. For
+  complete, ungrouped samples the analytic score (thesis Appendix B.1) is
+  used as the gradient. The selected optimum is then polished to a relative
+  tolerance of `1e-12`; the default of `maxLik`, about `1.5e-8`, could leave
+  the log-likelihood some `1e-5` short of the maximum. The fitted object
+  gains `submodel_logLik`.
+
+* **Parameter box.** The shape parameters are confined to the thesis box
+  `[1e-4, 1e4]` (new argument `box`); the rate `k` gets the same box widened
+  to follow the unit of time. A fit within 2% of the edge, on the log scale,
+  is flagged `at_boundary = TRUE`: its log-likelihood is a supremum, so
+  `AIC`, `BIC`, the standard errors and the goodness-of-fit statistics are
+  `NA`, `summary()` and `report_betadanish()` say so, and a warning explains
+  it. An interior fit with `a < 0.01` or `c > 100` is flagged as weakly
+  identified on the `(a, c)` ridge but keeps its information criteria. New
+  components `at_boundary`, `edge_par`, `flag`, `box` and `bounds`.
+
+* `fit_bd_cure()` gains `submodel`. With `submodel = FALSE` it fits the
+  four-parameter Beta-Danish kernel (adding `log_a`), started from the ED
+  cure optimum and from the `(a, c)` ridge through it, and refuses a fit
+  whose log-likelihood is below that of its own ED submodel. Cure fits now
+  carry `npar`, `nobs`, `AIC`, `BIC`, `logLik_submodel` and `separated`, the
+  last flagging a regression coefficient above 15 in absolute value
+  (near-separation). `summary()` reports the likelihood ratio test of
+  `a = 1`. The default, `submodel = TRUE`, gives the same fit as before.
+
+* `fit_bd_competing()` takes its starting values from the cause-wise
+  univariate fits only when they are admissible for the joint model. A
+  cause-wise fit on the edge of the parameter box, or with a shape above
+  500, is replaced by that cause's ED fit (`a = 1`), so the joint search is
+  never seeded on the degenerate ridge.
+
+## Goodness of fit
+
+* `gof_betadanish()` now reports the Kolmogorov-Smirnov, Cramer-von Mises
+  and Anderson-Darling statistics, computed with the Kaplan-Meier estimator
+  on the probability-integral-transform scale. Without censoring they are
+  exactly the classical statistics, so complete and censored samples are on
+  one scale. New components `CvM_Statistic`, `AD_Statistic`, `GOF`,
+  `censored` and `at_boundary`; `IC` and `KS_Statistic` are kept.
+
+* **Behaviour change.** For censored data the Kolmogorov-Smirnov value
+  changes: the supremum is now taken at both ends of every Kaplan-Meier
+  step, where 0.3.0 looked only at the right-hand end and could understate
+  it.
+
+* `bd_analyze_csv()` adds the two new statistics to its goodness-of-fit
+  table and a `flag` column to its information-criteria table.
+  `compare_distributions()` lists a model without an AIC last and does not
+  rank it.
+
+## Interval estimation
+
+* `bd_profile_ci()` extends its default grid outward, in the same
+  logarithmic steps and starting each new point from its neighbour, until
+  the profile crosses the cut-off or the parameter box is reached. Crossings
+  are located by interpolation on the log scale and each endpoint is flagged
+  `lower_closed` / `upper_closed`. New arguments `extend` and `max_extend`.
+  A grid supplied by the user is read exactly as before. The interval is
+  measured from the highest log-likelihood reached; if the profile rises
+  above the fitted maximum, a warning says the fit stopped short of the
+  optimum (new component `logLik_fit`).
+
+* A standard error that is zero or comes from a degenerate information
+  matrix is reported as `NA`, never as `0`, in `summary()`, `bd_wald_ci()`,
+  `bd_identified_coef()`, the AFT and cure summaries and `bd_analyze_csv()`.
+
+## Bayesian estimation
+
+* **Behaviour change.** `bayes_betadanish()` now uses, by default, the
+  multi-chain adaptive Metropolis sampler of the thesis (`method =
+  "adaptive"`, four chains), written in base R. The proposal scale adapts
+  towards an acceptance rate of 0.234 and the proposal covariance is learned
+  during the burn-in; adaptation stops before any draw is retained. Every
+  fit reports R-hat, the effective sample size and the acceptance rate of
+  each parameter, and `converged` is `TRUE` only when every R-hat is at most
+  1.05 and every effective sample size at least 400. For the full model the
+  summary includes the identified composite `a_times_c`. The MCMCpack
+  sampler of earlier versions remains available as `method = "metrop1R"`.
+  New arguments `method`, `n_chains`, `thin`, `target_acc`, `rhat_max` and
+  `ess_min`; the existing arguments keep their positions.
+
+* `plot.bd_bayes()` draws each chain in its own colour in the trace panels.
+
+* `bd_analyze_csv(bayes = TRUE)` no longer requires MCMCpack.
+
+* The Bayesian vignette is rewritten for the new sampler.
+
+## Numerical accuracy
+
+* `pbetadanish()` stays finite where the Danish baseline underflows
+  (`log G < -700`). It uses the leading term of the convergent expansion of
+  the incomplete beta function there, so the lower tail and its logarithm
+  no longer collapse to `0` and `-Inf`. Values elsewhere are unchanged. An
+  undefined argument (for example `c` and `k` both infinite) gives `NaN`, as
+  before, rather than an error.
+
+* `qbetadanish()` checks that `lower.tail` and `log.p` are single
+  `TRUE`/`FALSE` values.
+
+## New functions
+
+* `bd_kl_submodel()` computes the Kullback-Leibler divergence from a
+  Beta-Danish distribution to its closest ED submodel by numerical
+  integration, and the sample size at which the four-parameter model would
+  be expected to win by a given AIC margin.
+
+## Documentation
+
+* The package now cites a single reference, the thesis (Ahmad, 2026), in
+  `DESCRIPTION`, `citation("BetaDanish")`, the help pages and the README.
+
+* The README lists the six vignettes that actually ship.
+
 # BetaDanish 0.3.0
 
 ## Visualisation
@@ -171,6 +301,7 @@
 * `print`, `summary` and `plot` methods for the new `bd_analysis` class.
 
 * New vignette: "Analysing Your Own Data from a CSV File".
+
 ## Data input
 
 * `read_survival_data()` gains `cause_col`, `sep`, `dec`, `encoding`,
@@ -179,11 +310,11 @@
   names such as `censor`, whose polarity differs between conventions.
 
 * The `bd_data_report` attribute now also records which columns were
+  used and whether the times look recorded on a coarse grid.
 
 * `read_survival_data(covar_cols = "all")` retains every column that is
   not part of the response. Columns that are dropped are now named in a
   message and recorded in the report, rather than disappearing silently.
-  used and whether the times look recorded on a coarse grid.
 
 ## Correctness fixes
 

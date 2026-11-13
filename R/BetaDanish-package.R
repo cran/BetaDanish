@@ -9,16 +9,13 @@
 #' right-censored data, and advanced modeling capabilities including Accelerated
 #' Failure Time (AFT) regression, cure-rate models, and competing risks analysis.
 #'
-#' The three-parameter Exponentiated Danish (ED) submodel is introduced in the
-#' published article (Ahmad & Danish, 2025). The full four-parameter Beta-Danish
-#' distribution is developed in the accompanying doctoral thesis (Ahmad, 2026).
+#' The four-parameter Beta-Danish distribution and its three-parameter
+#' Exponentiated Danish (ED) submodel, \eqn{a = 1}, are developed in the
+#' doctoral thesis on which the package is based (Ahmad, 2026). From version
+#' 1.0.0 the estimation, goodness-of-fit, interval and Bayesian routines follow
+#' the final analysis code of that thesis.
 #'
 #' @references
-#' Ahmad, B., & Danish, M. Y. (2025). Development and characterization of a
-#' flexible three-parameter lifetime distribution: theoretical properties and
-#' real-world applications. *Journal of Applied Mathematics, Statistics and
-#' Informatics*, 21(1). \doi{10.2478/jamsi-2025-0010}
-#'
 #' Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The Development and
 #' Characterization of a New Four-Parameter Lifetime Distribution* (Ph.D.
 #' thesis). Allama Iqbal Open University, Islamabad, Pakistan. Supervised by

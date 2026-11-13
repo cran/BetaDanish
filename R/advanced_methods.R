@@ -51,9 +51,35 @@
 }
 
 .bd_se <- function(object) {
-  se <- sqrt(pmax(diag(object$vcov), 0))
-  names(se) <- names(object$coefficients)
-  se
+  ## NA, never 0, where the information matrix is degenerate.
+  .bd_se_from_vcov(object$vcov, names(object$coefficients))
+}
+
+#' Kernel Label for a Cure Fit
+#' @noRd
+.bd_cure_kernel <- function(x) {
+  if (isFALSE(x$submodel)) "four-parameter Beta-Danish kernel"
+  else "Exponentiated Danish kernel, a = 1"
+}
+
+#' Extra Lines for a Cure Fit: Information Criteria, Nesting, Separation
+#' @noRd
+.bd_cure_footer <- function(x) {
+  if (!is.null(x$AIC) && is.finite(x$AIC))
+    cat("AIC:", round(x$AIC, 4), " | BIC:", round(x$BIC, 4), "\n")
+  if (isFALSE(x$submodel) && !is.null(x$logLik_submodel) &&
+      is.finite(x$logLik_submodel)) {
+    lr <- max(0, 2 * (x$logLik - x$logLik_submodel))
+    cat(sprintf(paste0("Exponentiated Danish cure fit: logLik %.4f; ",
+                       "LR test of a = 1: %.4f on 1 df, p = %.4g\n"),
+                x$logLik_submodel, lr,
+                stats::pchisq(lr, df = 1, lower.tail = FALSE)))
+  }
+  if (isTRUE(x$separated))
+    cat("Note: a regression coefficient exceeds 15 in absolute value",
+        "(near-separation);\n  the fit is a valid maximum but weakly",
+        "identified in that direction.\n")
+  invisible(NULL)
 }
 
 #' @export
@@ -87,7 +113,8 @@ print.summary.bd_aft <- function(x, ...) {
 #' @export
 print.bd_cure <- function(x, ...) {
   cat("\nCall:\n"); print(x$call)
-  cat("\nBeta-Danish Cure Model (", x$type, ")\n", sep = "")
+  cat("\nBeta-Danish Cure Model (", x$type, "; ", .bd_cure_kernel(x), ")\n",
+      sep = "")
   cat("Log-Likelihood:", round(x$logLik, 4), "\n\n")
   cat("Coefficients (optimisation scale):\n")
   print(round(x$coefficients, 4)); cat("\n")
@@ -98,7 +125,11 @@ print.bd_cure <- function(x, ...) {
 summary.bd_cure <- function(object, ...) {
   res <- list(call = object$call, type = object$type,
               tables = .bd_split_coef(object$coefficients, .bd_se(object)),
-              logLik = object$logLik)
+              logLik = object$logLik,
+              submodel = object$submodel,
+              AIC = object$AIC, BIC = object$BIC,
+              logLik_submodel = object$logLik_submodel,
+              separated = object$separated)
   class(res) <- "summary.bd_cure"
   res
 }
@@ -106,9 +137,11 @@ summary.bd_cure <- function(object, ...) {
 #' @export
 print.summary.bd_cure <- function(x, ...) {
   cat("\nCall:\n"); print(x$call)
-  cat("\nBeta-Danish Cure Model (", x$type, ")\n\n", sep = "")
+  cat("\nBeta-Danish Cure Model (", x$type, "; ", .bd_cure_kernel(x), ")\n\n",
+      sep = "")
   .bd_print_split(x$tables)
   cat("---\nLog-Likelihood:", round(x$logLik, 4), "\n")
+  .bd_cure_footer(x)
   invisible(x)
 }
 

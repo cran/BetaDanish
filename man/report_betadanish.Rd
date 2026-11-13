@@ -23,9 +23,10 @@ Invisibly returns `x`.
 }
 \description{
 Collects the headline quantities from a fitted model into a small object with
-a `print` method. Information criteria are computed from the fitted
-log-likelihood via the `logLik` method, so they cannot fall out of step with
-the fit.
+a `print` method. Information criteria are taken from the fit, where
+they are `NA` for a fit on the edge of the parameter box (its
+log-likelihood is a supremum), and otherwise computed through the `logLik`
+method.
 }
 \examples{
 \donttest{

@@ -14,7 +14,8 @@ fit_betadanish(
   penalty = 0,
   penalty_center = NULL,
   grouped = FALSE,
-  delta = NULL
+  delta = NULL,
+  box = c(1e-04, 10000)
 )
 }
 \arguments{
@@ -26,8 +27,8 @@ fit_betadanish(
 \item{submodel}{Logical; if `TRUE`, fits the three-parameter Exponentiated
 Danish (ED) submodel by fixing `a = 1`.}
 
-\item{n_starts}{Integer; number of random starting points for the
-multi-start optimisation. Default 10.}
+\item{n_starts}{Integer; number of random starting points added to the
+thesis starts and the deterministic grid. Default 10.}
 
 \item{method}{Character; optimisation method passed to `maxLik::maxLik`.}
 
@@ -48,27 +49,73 @@ appropriate to times recorded on a coarse grid. Default `FALSE`.}
 
 \item{delta}{Recording increment for `grouped = TRUE`. `NULL` (default)
 infers it from the spacing of the observed times.}
+
+\item{box}{Numeric vector `c(lower, upper)` confining the shape parameters
+`a`, `b` and `c`. Default `c(1e-4, 1e4)`, the box used in the thesis.
+The rate `k` gets the same box widened to follow the unit of time; see
+the Parameter box section.}
 }
 \value{
 An object of S3 class `"betadanish"` with components including
-  `coefficients`, `logLik`, `vcov`, `npar`, `nobs`, `convergence` and
-  `diagnostics`.
+  `coefficients`, `logLik`, `vcov`, `npar`, `nobs`, `AIC`, `BIC`,
+  `convergence`, `diagnostics`, `at_boundary` (logical), `edge_par` (the
+  parameters at the box edge), `flag` (`"ok"` or a description),
+  `bounds` (the natural-scale box) and, for the four-parameter model,
+  `submodel_logLik`, the log-likelihood of the Stage-1 ED fit.
 }
 \description{
 Fits the Beta-Danish distribution by maximum likelihood. Complete and
 right-censored samples are both supported, via a `survival::Surv` response.
 }
 \details{
-Optimisation is carried out on log-transformed parameters so that positivity
-is enforced without constraints; estimates and the variance-covariance matrix
-are returned on the natural scale, the latter via the delta method.
+Optimisation is carried out on log-transformed parameters; estimates and the
+variance-covariance matrix are returned on the natural scale, the latter via
+the delta method.
 }
+\section{Estimator}{
+
+The search follows the two-stage estimator of the thesis.
+
+* **Stage 1** fits the Exponentiated Danish submodel from four starts,
+  \eqn{(b, c) \in \{(1,1), (2,2), (0.5,3), (4,0.8)\}} with
+  \eqn{k = 1/\mathrm{median}(t)}.
+* **Stage 2** (four-parameter model only) starts from seven points along
+  the \eqn{(a, c)} ridge through the Stage-1 optimum,
+  \eqn{(f, b_{ED}, c_{ED}/f, k_{ED})} for
+  \eqn{f \in \{1/30, 1/8, 1/3, 1, 3, 8, 30\}}. The start \eqn{f = 1} is
+  the ED optimum itself, so the Beta-Danish log-likelihood can never fall
+  below the ED one: nesting holds by construction.
+
+The deterministic grid and the `n_starts` random starts of earlier versions
+are kept as further candidates, drawn from the random-number stream in the
+same order as before. For a complete, ungrouped sample the analytic score
+(thesis Appendix B.1) is used as the gradient; censored and grouped
+likelihoods are differentiated numerically. No start value depends on the
+parameters that generated the data.
+}
+
+\section{Parameter box}{
+
+The shape parameters are confined to `box`, \eqn{[10^{-4}, 10^{4}]} by
+default. The rate `k` is measured in the unit of time, so its bound covers
+both \eqn{[10^{-4}, 10^{4}]} and \eqn{k \cdot \mathrm{median}(t) \in}
+`box`; rescaling the times cannot push an interior fit onto the boundary.
+
+A fit within 2\% of the box edge (on the log scale) is flagged
+`at_boundary = TRUE`. Its log-likelihood is a **supremum**, not an attained
+maximum, so `AIC`, `BIC`, the standard errors and the goodness-of-fit
+statistics of [gof_betadanish()] are all `NA`. An interior fit with
+\eqn{\hat a < 0.01} or \eqn{\hat c > 100} is flagged as weakly identified
+on the \eqn{(a, c)} ridge but is still a proper maximum and keeps its
+information criteria.
+}
+
 \section{Grouped data}{
 
 Survival times are often recorded on a grid -- whole days, whole months --
 and the point-density likelihood is not appropriate for them. It treats a
-rounded value as an exact observation, which overstates the information in
-the sample and understates every standard error. With `grouped = TRUE` an
+rounded value as an exact observation, which can overstate the information
+in the sample and make uncertainty estimates too small. With `grouped = TRUE` an
 event recorded at \eqn{t} contributes
 \eqn{\log\{F(t + \delta/2) - F(t - \delta/2)\}} instead of
 \eqn{\log f(t)}; censored observations are unchanged. The cell probability
@@ -78,6 +125,14 @@ equal distribution values has cancelled to zero.
 `read_survival_data()` reports an inferred `grid_step` for exactly this
 purpose, and this function warns when the times look grid-recorded but
 `grouped = FALSE`.
+
+The grouped likelihood is a harder surface to optimise than the
+point-density one. On the same data and the same starting grid, the
+optimiser can stop where the observed information is not positive
+definite, and the delta-method variances then come back non-positive.
+Check `fit$diagnostics$vcov_singular` before trusting a standard error
+from a grouped fit; leaving `check_identifiability = TRUE` will warn
+about it automatically.
 }
 
 \section{Penalised fitting}{

@@ -42,8 +42,11 @@ plot.bd_cure <- function(x, ...) {
 #' Reading `coefficients["b"]` returns NA, which is what previously disabled
 #' the Cox-Snell plots.
 #'
+#' A four-parameter cure fit (`fit_bd_cure(submodel = FALSE)`) also carries
+#' `log_a`; every other fit has \eqn{a = 1}.
+#'
 #' @param fit A `"bd_aft"` or `"bd_cure"` object.
-#' @return A list with numeric `b`, `c` and `delta`.
+#' @return A list with numeric `a`, `b`, `c` and `delta`.
 #' @noRd
 .bd_shape_natural <- function(fit) {
   cf <- fit$coefficients
@@ -53,7 +56,9 @@ plot.bd_cure <- function(x, ...) {
     NA_real_
   }
   delta_names <- grep("^delta_", names(cf), value = TRUE)
-  list(b     = pick("b"),
+  a <- pick("a")
+  list(a     = if (is.na(a)) 1 else a,
+       b     = pick("b"),
        c     = pick("c"),
        delta = as.numeric(cf[delta_names]))
 }
@@ -65,11 +70,12 @@ plot.bd_cure <- function(x, ...) {
   X      <- d$X
 
   pars  <- .bd_shape_natural(x)
+  apar  <- pars$a
   b     <- pars$b
   cpar  <- pars$c
   delta <- pars$delta
 
-  if (!is.finite(b) || !is.finite(cpar) || length(delta) == 0L ||
+  if (!is.finite(apar) || !is.finite(b) || !is.finite(cpar) || length(delta) == 0L ||
       any(!is.finite(delta))) {
     warning("Cox-Snell plot: the fit contains non-finite coefficients, so ",
             "residuals cannot be computed.", call. = FALSE)
@@ -82,7 +88,7 @@ plot.bd_cure <- function(x, ...) {
   k_i <- exp(as.numeric(X %*% delta))
 
   ## Cox-Snell residual is the fitted cumulative hazard, -log S(t).
-  r <- -pbetadanish(time, a = 1, b = b, c = cpar, k = k_i,
+  r <- -pbetadanish(time, a = apar, b = b, c = cpar, k = k_i,
                     lower.tail = FALSE, log.p = TRUE)
 
   keep <- is.finite(r) & r > 0

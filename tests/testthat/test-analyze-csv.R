@@ -101,8 +101,11 @@ test_that("the competing-risks path needs a cause column", {
 
   res <- bd_analyze_csv(csv_path("competing_sample.csv"), analysis = "competing",
                         time_col = "time", cause_col = "cause",
-                        compare = FALSE, n_starts = 2, seed = 16, quiet = TRUE)
+                        competing_submodel = TRUE, compare = FALSE,
+                        n_starts = 5, seed = 16, quiet = TRUE)
   expect_true(inherits(res$fits$CR, "bd_competing"))
+  expect_true(isTRUE(res$fits$CR$submodel))
+  expect_length(res$failures, 0L)
 })
 
 test_that("a failing fit is recorded rather than fatal", {

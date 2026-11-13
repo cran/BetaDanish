@@ -13,7 +13,13 @@ bayes_betadanish(
   tune = 0.5,
   theta_init = NULL,
   seed = NULL,
-  verbose = 0
+  verbose = 0,
+  method = c("adaptive", "metrop1R"),
+  n_chains = 4L,
+  thin = 1L,
+  target_acc = 0.234,
+  rhat_max = 1.05,
+  ess_min = 400
 )
 }
 \arguments{
@@ -24,38 +30,102 @@ bayes_betadanish(
 \item{submodel}{Logical; \code{TRUE} for the 3-parameter ED submodel,
 \code{FALSE} for the 4-parameter full model.}
 
-\item{burnin}{Burn-in iterations.}
+\item{burnin}{Burn-in iterations (per chain for the adaptive sampler).}
 
-\item{mcmc}{Post-burnin iterations.}
+\item{mcmc}{Post-burnin iterations (per chain for the adaptive sampler).}
 
-\item{tune}{Random-walk tuning parameter.}
+\item{tune}{Random-walk tuning parameter, used only by
+\code{method = "metrop1R"}.}
 
-\item{theta_init}{Optional starting values on the log scale.}
+\item{theta_init}{Optional starting values on the log scale. For the
+adaptive sampler the first chain starts here and the others at random
+perturbations of it; by default the maximum-likelihood estimate from
+[fit_betadanish()] is used.}
 
 \item{seed}{Optional integer seed.}
 
-\item{verbose}{Integer; passed to MCMCmetrop1R (0 = silent).}
+\item{verbose}{Integer; passed to MCMCmetrop1R (0 = silent). Ignored by the
+adaptive sampler.}
+
+\item{method}{\code{"adaptive"} (default) for the multi-chain adaptive
+Metropolis sampler, or \code{"metrop1R"} for the single-chain sampler of
+\pkg{MCMCpack} used by earlier versions.}
+
+\item{n_chains}{Number of chains for the adaptive sampler. Default 4.}
+
+\item{thin}{Thinning interval for the adaptive sampler. Default 1.}
+
+\item{target_acc}{Target acceptance rate of the scale adaptation. Default
+0.234.}
+
+\item{rhat_max, ess_min}{Convergence gate: every parameter must have a
+potential scale reduction factor at most \code{rhat_max} (default 1.05)
+and an effective sample size at least \code{ess_min} (default 400).}
 }
 \value{
-An object of class \code{"bd_bayes"} with components
-  \code{draws} (mcmc object), \code{summary}, \code{HPD},
-  \code{submodel}, \code{call}.
+An object of class \code{"bd_bayes"}. For the adaptive sampler its
+  components are \code{draws} (the retained natural-scale draws of all
+  chains stacked, a \pkg{coda} \code{mcmc} object when \pkg{coda} is
+  installed), \code{chains} (a list with one natural-scale matrix per
+  chain), \code{summary} (a data frame of posterior means, standard
+  deviations, quantiles and 95\% HPD limits; for the full model it also
+  has a row for the identified composite \code{a_times_c}), \code{HPD} (a
+  matrix of 95\% HPD intervals), \code{diagnostics} (R-hat, effective
+  sample size and acceptance rate per parameter), \code{converged},
+  \code{acceptance}, \code{settings}, \code{method}, \code{submodel} and
+  \code{call}. For \code{method = "metrop1R"} the object is as in earlier
+  versions: \code{draws} (mcmc object), \code{summary}, \code{HPD},
+  \code{submodel}, \code{call} and \code{method}.
 }
 \description{
 Samples from the posterior of the Beta-Danish or Exponentiated Danish
-parameters using a random-walk Metropolis sampler with vague
-\eqn{\Gamma(0.01, 0.01)} priors on the positive parameters.
+parameters with vague \eqn{\Gamma(0.01, 0.01)} priors on the positive
+parameters. The default sampler is the multi-chain adaptive Metropolis
+algorithm of the thesis, written in base R, with a convergence check on
+every parameter.
 }
 \details{
-Requires \pkg{MCMCpack} and \pkg{coda} (Suggests).
+**Adaptive sampler.** Each chain is a random-walk Metropolis sampler on the
+log-parameter scale. During the first 85\% of the burn-in the global scale
+of the proposal is adapted by a Robbins-Monro step towards the target
+acceptance rate, every 200 iterations with gain
+\eqn{\min\{0.6, (200/i)^{0.6}\}}; once enough iterations have accumulated
+the proposal covariance is replaced by the learned covariance of the chain,
+scaled by \eqn{2.38^2/d}, and the global scale is re-based to 1 once and
+keeps adapting on top of it. Adaptation stops inside the burn-in, so every
+retained draw comes from a fixed kernel. The parameters are confined to
+\eqn{[10^{-7}, 10^{7}]} on the natural scale, which keeps a chain from
+drifting off along the \eqn{(a, c)} ridge under the vague priors.
+
+Convergence is judged on the log scale by the potential scale reduction
+factor and the effective sample size, computed with \pkg{coda} when it is
+installed and by base-R equivalents otherwise. A fit whose chains fail the
+gate is returned with \code{converged = FALSE} and a warning; increase
+\code{burnin} and \code{mcmc} before using it. For the four-parameter model
+the posterior of \eqn{ac} is usually far better determined than those of
+\eqn{a} and \eqn{c}, which is why it is summarised separately.
+
+**MCMCpack sampler.** \code{method = "metrop1R"} calls
+\code{MCMCpack::MCMCmetrop1R()} with the fixed tuning constant \code{tune};
+it requires \pkg{MCMCpack} and \pkg{coda} (Suggests). The thesis found its
+acceptance rate for the four-parameter model to be as low as 4--9\%, which
+is why it is no longer the default.
 }
 \examples{
-\dontrun{
-set.seed(1)
-dat <- rbetadanish(100, a = 1.5, b = 2, c = 3, k = 0.5)
-fit <- bayes_betadanish(time = dat, submodel = TRUE,
-                        burnin = 500, mcmc = 1500)
+\donttest{
+dat <- simulate_bd_data(100, a = 1, b = 3, c = 2, k = 0.5, seed = 1)
+fit <- bayes_betadanish(dat$time, dat$status, submodel = TRUE,
+                        burnin = 1000, mcmc = 2000, seed = 1)
 fit$summary
+fit$diagnostics
 }
 
+}
+\references{
+Ahmad, B. (2026). *Modeling Diverse Survival Patterns: The Development and
+Characterization of a New Four-Parameter Lifetime Distribution* (Ph.D.
+thesis). Allama Iqbal Open University, Islamabad, Pakistan.
+}
+\seealso{
+[plot.bd_bayes()]
 }

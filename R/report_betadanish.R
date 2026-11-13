@@ -1,9 +1,10 @@
 #' Create a Compact Report from a Beta-Danish Model Fit
 #'
 #' Collects the headline quantities from a fitted model into a small object with
-#' a `print` method. Information criteria are computed from the fitted
-#' log-likelihood via the `logLik` method, so they cannot fall out of step with
-#' the fit.
+#' a `print` method. Information criteria are taken from the fit, where
+#' they are `NA` for a fit on the edge of the parameter box (its
+#' log-likelihood is a supremum), and otherwise computed through the `logLik`
+#' method.
 #'
 #' @param fit A fitted `"betadanish"` object.
 #'
@@ -30,8 +31,11 @@ report_betadanish <- function(fit) {
     logLik       = as.numeric(fit$logLik),
     npar         = .bd_or(fit$npar, length(fit$coefficients)),
     nobs         = .bd_or(fit$nobs, length(fit$data$time)),
-    AIC          = tryCatch(stats::AIC(fit), error = function(e) NA_real_),
-    BIC          = tryCatch(stats::BIC(fit), error = function(e) NA_real_),
+    ## A boundary fit stores NA: its log-likelihood is a supremum.
+    AIC          = if (!is.null(fit$AIC)) as.numeric(fit$AIC) else
+                     tryCatch(stats::AIC(fit), error = function(e) NA_real_),
+    BIC          = if (!is.null(fit$BIC)) as.numeric(fit$BIC) else
+                     tryCatch(stats::BIC(fit), error = function(e) NA_real_),
     convergence  = fit$convergence,
     diagnostics  = fit$diagnostics
   )
@@ -67,6 +71,7 @@ print.betadanish_report <- function(x, ...) {
   d <- x$diagnostics
   if (!is.null(d)) {
     flags <- character(0)
+    if (isTRUE(d$at_boundary))   flags <- c(flags, "on the edge of the parameter box (supremum)")
     if (isTRUE(d$vcov_singular)) flags <- c(flags, "singular information matrix")
     if (isTRUE(d$near_b_ridge))  flags <- c(flags, "near the b = 1 ridge")
     if (is.finite(d$ac_correlation) && abs(d$ac_correlation) > 0.95)

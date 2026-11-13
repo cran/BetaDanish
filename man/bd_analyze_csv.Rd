@@ -20,6 +20,7 @@ bd_analyze_csv(
   bayes = FALSE,
   cure_formula = NULL,
   cure_type = c("mixture", "promotion"),
+  competing_submodel = FALSE,
   output_dir = NULL,
   n_starts = 10,
   seed = NULL,
@@ -55,14 +56,19 @@ Danish submodel (`"ED"`), or `"both"` (default) and compare them.}
 via [compare_distributions()]. Requires the `flexsurv` package; skipped
 with a recorded note if it is absent. Default `TRUE`.}
 
-\item{bayes}{Logical; also run [bayes_betadanish()]. Requires `MCMCpack`.
-Default `FALSE`, since it is slow.}
+\item{bayes}{Logical; also run [bayes_betadanish()] with its default
+adaptive sampler, which needs no extra package. Default `FALSE`, since it
+is slow.}
 
 \item{cure_formula}{Right-hand-side formula for the cure fraction when
 `analysis = "cure"`, for example `~ group`. Defaults to the retained
 covariates.}
 
 \item{cure_type}{`"mixture"` (default) or `"promotion"`.}
+
+\item{competing_submodel}{Logical; for `analysis = "competing"`, use
+the three-parameter Exponentiated Danish kernel for every cause. This
+is more stable for small or weakly identified samples. Default `FALSE`.}
 
 \item{output_dir}{Directory to write results to. `NULL` (default) writes
 nothing. The directory is created if it does not exist.}
